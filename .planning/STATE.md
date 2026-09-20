@@ -2,14 +2,15 @@
 gsd_state_version: "1.0"
 status: unknown
 stopped_at: Phase 1 plan created
-last_updated: "2026-09-20T08:34:10.886Z"
-state_head: 3bffc5fa1dcbea8be19105aaa449845791644c9a
+last_updated: "2026-09-20T08:35:07.365Z"
+state_head: 36449a1314d2272479a4d1481af66c939424a3a2
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 1
   completed_plans: 0
   percent: 0
+current_phase_name: Batch Processing Core
 ---
 
 # Project State
@@ -19,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-20)
 
 **Core value:** Détecter la triche (aimbots humanisés, wallhacks subtils) avec la plus haute précision possible, exclusivement à partir de l'analyse des replays, de façon sécurisée et incontestable.
-**Current focus:** Phase 1: Batch Processing Core
+**Current focus:** Phase 01 — Batch Processing Core
 
 ## Active Phase: Phase 1
 

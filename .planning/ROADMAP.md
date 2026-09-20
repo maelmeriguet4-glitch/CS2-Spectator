@@ -13,16 +13,16 @@
 
 ### Phase Details
 
-**Phase 1: Batch Processing Core**
-Goal: Permettre l'analyse en arrière-plan de plusieurs démos
+### Phase 1: Batch Processing Core
+**Goal:** Permettre l'analyse en arrière-plan de plusieurs démos
 **Mode:** mvp
 Requirements: PERF-01
 Success criteria:
 1. L'utilisateur peut sélectionner un dossier contenant plusieurs fichiers `.dem`.
 2. L'application parse les démos en arrière-plan (multiprocessing) sans bloquer l'interface.
 
-**Phase 2: Advanced ML Detection**
-Goal: Intégrer les modèles de détection avancés (wallhack/aimbot)
+### Phase 2: Advanced ML Detection
+**Goal:** Intégrer les modèles de détection avancés (wallhack/aimbot)
 **Mode:** mvp
 Requirements: ML-01, ML-02
 Success criteria:
@@ -30,8 +30,8 @@ Success criteria:
 2. Les modèles ML détectent les anomalies de vision (wallhacks subtils).
 3. Les verdicts sont correctement retournés par le moteur central.
 
-**Phase 3: Dashboard & Explanations**
-Goal: Créer l'UI interactive affichant les résultats et les preuves
+### Phase 3: Dashboard & Explanations
+**Goal:** Créer l'UI interactive affichant les résultats et les preuves
 **Mode:** mvp
 Requirements: UI-01, UI-02
 Success criteria:
@@ -39,8 +39,8 @@ Success criteria:
 2. Un clic sur un joueur ouvre une vue détaillée (statistiques, anomalies).
 3. Les raisons du verdict sont explicitées en texte clair.
 
-**Phase 4: Audit Reporting**
-Goal: Générer des rapports exportables pour le signalement
+### Phase 4: Audit Reporting
+**Goal:** Générer des rapports exportables pour le signalement
 **Mode:** mvp
 Requirements: PERF-02
 Success criteria:

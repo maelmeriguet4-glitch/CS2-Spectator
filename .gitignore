@@ -1,0 +1,35 @@
+# Build
+dist/
+build/
+*.spec.bak
+*.manifest
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+.venv/
+venv/
+.env
+*.egg-info/
+
+# Models / Demos (large binaries)
+# Keep small model cerveau_vac_custom.pkl but ignore large demos
+demos/*.dem
+demos/*.dem.info
+data/
+*.pkl.bak
+
+# Agents / temp
+.agents/
+legacy_backup/
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

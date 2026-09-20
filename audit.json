@@ -1,0 +1,94 @@
+{
+  "projet": "CS2 Anti-Cheat",
+  "date": "20/09/2026",
+  "perimetre": {
+    "description": "Code source Python et tests de l'application CS2 Anti-Cheat.",
+    "langages": ["Python"],
+    "nombre_fichiers": 25,
+    "outils": ["ruff", "mypy", "pytest"],
+    "limites": ["Modèles ML (.pkl) non audités"]
+  },
+  "resume": {
+    "verdict": "Le projet présente des défauts importants empêchant les tests de s'exécuter et des erreurs de compilation liées à des imports manquants, ainsi que des pratiques de gestion des exceptions potentiellement dangereuses.",
+    "priorites": [
+      "Corriger l'erreur de compilation dans src.ui.app (F821)",
+      "Corriger les imports dans tests/test_cache_integration.py pour permettre l'exécution des tests (E-002)",
+      "Retirer les 'except Exception: pass' qui masquent les erreurs (S110/BLE001)"
+    ]
+  },
+  "erreurs": [
+    {
+      "id": "E-001",
+      "titre": "Variable non définie `List`",
+      "categorie": "Syntaxe / compilation",
+      "gravite": "critique",
+      "fichier": "src/ui/app.py",
+      "lignes": "56",
+      "description": "L'annotation de type `List` est utilisée mais n'a pas été importée du module `typing`.",
+      "preuve": "Undefined name `List`",
+      "correction": "Ajouter `from typing import List` en haut du fichier.",
+      "effort": "faible",
+      "confiance": "confirmée",
+      "depend_de": []
+    },
+    {
+      "id": "E-002",
+      "titre": "Import cassé dans les tests d'intégration du cache",
+      "categorie": "Tests",
+      "gravite": "haute",
+      "fichier": "tests/test_cache_integration.py",
+      "lignes": "15",
+      "description": "Le test tente d'importer la classe `AnalysisCache` depuis `src.core.cache`, mais ce module n'expose que des fonctions (pas de classe).",
+      "preuve": "ImportError: cannot import name 'AnalysisCache' from 'src.core.cache'",
+      "correction": "Modifier le test pour utiliser les fonctions `load_cached_analysis` et `save_analysis_cache` au lieu de la classe `AnalysisCache`.",
+      "effort": "moyen",
+      "confiance": "confirmée",
+      "depend_de": []
+    },
+    {
+      "id": "E-003",
+      "titre": "Exceptions aveugles avec `pass`",
+      "categorie": "Gestion d'erreurs",
+      "gravite": "moyenne",
+      "fichier": "Plusieurs fichiers (ex: src/main.py, src/core/cache.py)",
+      "lignes": "multiples",
+      "description": "Des blocs try/except capturent `Exception` et font un `pass`, silenciant des erreurs potentielles (ex: reconfigure encoding dans main.py, open cache dans cache.py).",
+      "preuve": "try:\n    sys.stdout.reconfigure(encoding='utf-8')\nexcept Exception:\n    pass",
+      "correction": "Logger les exceptions ou capturer une exception spécifique au lieu de `Exception`.",
+      "effort": "moyen",
+      "confiance": "confirmée",
+      "depend_de": []
+    },
+    {
+      "id": "E-004",
+      "titre": "Imports inutilisés dans de multiples fichiers",
+      "categorie": "Qualité / maintenabilité",
+      "gravite": "basse",
+      "fichier": "Plusieurs fichiers (tests/unit/test_ui.py, etc.)",
+      "lignes": "multiples",
+      "description": "Plus de 80 occurrences d'imports non utilisés (signalées par ruff) encombrent le code.",
+      "preuve": "F401: `queue` imported but unused",
+      "correction": "Supprimer les imports non utilisés, ou utiliser l'auto-fix de ruff (`ruff check --fix`).",
+      "effort": "faible",
+      "confiance": "confirmée",
+      "depend_de": []
+    }
+  ],
+  "plan": [
+    {
+      "phase": "Phase 1 : Bloquants",
+      "objectif": "Corriger les erreurs qui bloquent l'exécution ou les tests.",
+      "erreurs": ["E-001", "E-002"],
+      "notes": "Les tests doivent passer pour vérifier le reste du système."
+    },
+    {
+      "phase": "Phase 2 : Qualité et Robustesse",
+      "objectif": "Éviter les erreurs silencieuses et nettoyer le code.",
+      "erreurs": ["E-003", "E-004"],
+      "notes": "L'auto-fix de ruff peut accélérer E-004."
+    }
+  ],
+  "annexes": {
+    "fichiers_analyses": ["src/main.py", "src/core/cache.py", "src/ui/app.py", "tests/test_cache_integration.py"]
+  }
+}
