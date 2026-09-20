@@ -15,13 +15,14 @@ Détecter la triche (aimbots humanisés, wallhacks subtils) avec la plus haute p
 - ✓ [Parsing local] — Extraction de données des fichiers `.dem` via `demoparser2`.
 - ✓ [Pipeline ML] — Chargement de modèles et inférence via `scikit-learn` (modèles `.pkl`).
 - ✓ [Interface multi-modale] — Disponibilité d'une interface graphique (`customtkinter`) et d'un mode console CLI.
+- ✓ [Détection IA de pointe] — IsolationForest & RandomForest pour aimbots humanisés et wallhacks subtils (v1.0).
+- ✓ [UI/UX enrichie] — Dashboard interactif avec accordéon d'explications de preuves (v1.0).
+- ✓ [Traitement par lots ultra-rapide] — Multiprocessing en background pour traiter N démos (v1.0).
+- ✓ [Génération de preuves] — Rapports d'audit exportables format texte pur (v1.0).
 
 ### Active
 
-- [ ] [Détection IA de pointe] — Améliorer les modèles ML pour détecter les comportements subtils (wallhacks, aimbots humanisés).
-- [ ] [UI/UX enrichie] — Créer un dashboard interactif qui explique clairement les verdicts avec des statistiques détaillées.
-- [ ] [Traitement par lots ultra-rapide] — Optimiser les performances pour analyser de nombreuses démos en arrière-plan sans bloquer l'utilisateur.
-- [ ] [Génération de preuves] — Produire des rapports d'audit concrets et exportables prouvant la triche pour des signalements manuels.
+*(Tous les objectifs initiaux sont accomplis. En attente du prochain Milestone)*
 
 ### Out of Scope
 
