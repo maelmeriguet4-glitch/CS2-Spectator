@@ -236,8 +236,21 @@ class CS2AntiCheatApp(ctk.CTk):
                     total = self.batch_processor.total_files
                     errs = len(self.batch_processor.errors)
                     succ = total - errs
-                    self.lbl_status.configure(text=f"🏁 Lot terminé : {succ} succès, {errs} erreurs.")
+                    self.lbl_status.configure(text=f"Lot terminé : {succ} succès, {errs} erreurs.")
                     self.progress_bar.set(1.0)
+                    
+                    # Cacher le main_container
+                    if hasattr(self, 'main_container') and self.main_container:
+                        self.main_container.pack_forget()
+                        
+                    # Afficher le DashboardPanel
+                    from src.ui.components.dashboard_panel import DashboardPanel
+                    if hasattr(self, 'dashboard_panel') and self.dashboard_panel:
+                        self.dashboard_panel.destroy()
+                        
+                    self.dashboard_panel = DashboardPanel(self, match_results=self.batch_processor.results)
+                    self.dashboard_panel.pack(fill="both", expand=True)
+
         except queue.Empty:
             pass
         except Exception as e:
@@ -367,6 +380,11 @@ class CS2AntiCheatApp(ctk.CTk):
             except Exception as _e:
                     import logging
                     logging.debug(f"Ignored error: {_e}")
+
+    def show_replays_panel(self):
+        if hasattr(self, 'dashboard_panel') and self.dashboard_panel:
+            self.dashboard_panel.pack_forget()
+        self.main_container.pack(fill="both", expand=True, padx=16, pady=8)
 
 # Legacy alias for old main
 AntiCheatApp = CS2AntiCheatApp
