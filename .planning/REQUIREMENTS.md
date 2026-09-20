@@ -21,4 +21,10 @@
 - [Analyse de la RAM / Injection] — Raison : Strictement interdit pour éviter les bans VAC.
 
 ## Traceability
-<!-- Filled by roadmap -->
+
+- **ML-01** → Phase 2
+- **ML-02** → Phase 2
+- **UI-01** → Phase 3
+- **UI-02** → Phase 3
+- **PERF-01** → Phase 1
+- **PERF-02** → Phase 4
