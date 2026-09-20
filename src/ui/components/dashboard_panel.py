@@ -57,6 +57,16 @@ class PlayerResultRow(ctk.CTkFrame):
         )
         self.toggle_btn.pack(side="right", padx=10)
 
+        self.export_btn = ctk.CTkButton(
+            self.header_frame, 
+            text="📄 Exporter", 
+            width=80,
+            fg_color="#005C8A",
+            hover_color="#0077B3",
+            command=self.export_report
+        )
+        self.export_btn.pack(side="right", padx=10)
+
         # Contenu détaillé (Accordéon), masqué par défaut
         self.details_frame = ctk.CTkFrame(self, fg_color="#1E1E1E")
         
@@ -74,6 +84,19 @@ class PlayerResultRow(ctk.CTkFrame):
                 justify="left"
             )
             flag_lbl.pack(fill="x", padx=20, pady=2)
+
+    def export_report(self):
+        try:
+            from src.core.export import export_player_report
+            # Récupérer le demo_path si possible, sinon "Batch"
+            filepath = export_player_report(self.player, demo_name="CS2_Analysis")
+            
+            # Change color briefly to indicate success
+            self.export_btn.configure(text="✅ Exporté", fg_color="#28a745")
+            self.after(2000, lambda: self.export_btn.configure(text="📄 Exporter", fg_color="#005C8A"))
+        except Exception as e:
+            self.export_btn.configure(text="❌ Erreur", fg_color="#dc3545")
+            print(f"Erreur d'export: {e}")
 
     def toggle_details(self):
         if self.is_expanded:
