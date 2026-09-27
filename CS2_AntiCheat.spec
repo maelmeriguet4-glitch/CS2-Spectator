@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('cerveau_vac_cs2cd.pkl', '.'), ('src', 'src')]
+datas = [('cerveau_vac_cs2cd.pkl', '.'), ('cerveau_vac_custom.pkl', '.'), ('src', 'src')]
 binaries = []
 hiddenimports = ['watchdog', 'pyperclip', 'sklearn', 'joblib', 'pandas', 'numpy', 'PIL', 'darkdetect']
 tmp_ret = collect_all('customtkinter')
