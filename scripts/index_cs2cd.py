@@ -20,6 +20,8 @@ EXAMPLE_OUTPUT_CSV = os.path.join("data", "anti_cheat_dataset.example.csv")
 def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_CSV, sample_size=None, random_state=42):
     """
     Scanne le dossier du dataset CS2CD et produit un manifest CSV structuré.
+    Supporte les formats .parquet et .csv.gz.
+    Garantit l'étanchéité stricte des splits par match.
     """
     print(f"[INDEX] Racine du dataset: {dataset_root}")
     if not os.path.exists(dataset_root):
@@ -30,8 +32,12 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
     classes = ["with_cheater_present", "no_cheater_present"]
     stats = {
         "total_scanned": 0,
+        "parquet_count": 0,
+        "csv_gz_count": 0,
+        "json_count": 0,
         "valid_matches": 0,
         "missing_json": 0,
+        "unlinked_json": 0,
         "corrupt_json": 0,
         "with_cheater": 0,
         "no_cheater": 0,
@@ -44,15 +50,39 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
             print(f"[AVERTISSEMENT] Dossier de classe introuvable: {folder_path}")
             continue
 
-        parquet_files = sorted(glob.glob(os.path.join(folder_path, "*.parquet")))
-        for p_file in parquet_files:
-            stats["total_scanned"] += 1
-            base_name = os.path.basename(p_file).replace(".parquet", "")
-            j_file = os.path.join(folder_path, f"{base_name}.json")
+        # Recenser les fichiers JSON
+        json_files = {
+            os.path.basename(f)[:-5]: f
+            for f in glob.glob(os.path.join(folder_path, "*.json"))
+        }
+        stats["json_count"] += len(json_files)
 
-            if not os.path.exists(j_file):
+        # Recenser les fichiers de données (.parquet et .csv.gz)
+        p_files = glob.glob(os.path.join(folder_path, "*.parquet"))
+        c_files = glob.glob(os.path.join(folder_path, "*.csv.gz"))
+        stats["parquet_count"] += len(p_files)
+        stats["csv_gz_count"] += len(c_files)
+
+        data_candidates = {}
+        for p in p_files:
+            bname = os.path.basename(p)[:-8]  # strip .parquet
+            data_candidates[bname] = p
+        for c in c_files:
+            bname = os.path.basename(c)[:-7]  # strip .csv.gz
+            if bname not in data_candidates:  # prefer parquet if both exist
+                data_candidates[bname] = c
+
+        stats["total_scanned"] += len(data_candidates)
+        processed_json = set()
+
+        for base_name, d_file in sorted(data_candidates.items()):
+            j_file = json_files.get(base_name)
+
+            if not j_file or not os.path.exists(j_file):
                 stats["missing_json"] += 1
                 continue
+
+            processed_json.add(base_name)
 
             cheaters = []
             is_corrupt = False
@@ -78,18 +108,18 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
             stats["valid_matches"] += 1
             if label == "with_cheater_present":
                 stats["with_cheater"] += 1
-                stats["total_cheater_ids"] += len(cheaters)
+                stats["total_cheater_ids"] += len(set(cheaters))
                 label_conf = "high" if cheaters else "uncertain"
                 label_src = "cs2cd_vac_verified"
             else:
                 stats["no_cheater"] += 1
-                label_conf = "medium"  # 97.2% precision selon le papier CS2CD
+                label_conf = "medium"  # 97.2% precision selon CS2CD
                 label_src = "cs2cd_unverified_no_vac"
 
             records.append({
                 "match_id": f"{label}_{base_name}",
                 "match_category": label,
-                "data_path": p_file,
+                "data_path": d_file,
                 "metadata_path": j_file,
                 "label": label,
                 "label_confidence": label_conf,
@@ -98,6 +128,9 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
                 "num_cheaters": len(set(cheaters)),
                 "usable_for_training": True,
             })
+
+        # Compter les JSON orphelins (sans fichier de données correspondant)
+        stats["unlinked_json"] += len(set(json_files.keys()) - processed_json)
 
     if not records:
         print("[ERREUR] Aucun match valide trouvé dans le dataset.", file=sys.stderr)
@@ -125,7 +158,6 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
         val_df = pd.DataFrame(columns=df.columns)
         test_df = pd.DataFrame(columns=df.columns)
     else:
-        # Vérifier si la stratification est possible (nécessite au moins 2 membres par classe)
         can_stratify = False
         if len(df) >= 6:
             min_class_count = df["label"].value_counts().min()
@@ -149,6 +181,15 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
     val_df["split"] = "validation"
     test_df["split"] = "test"
 
+    # Vérification formelle d'étanchéité des identifiants de match
+    train_match_ids = set(train_df["match_id"])
+    val_match_ids = set(val_df["match_id"])
+    test_match_ids = set(test_df["match_id"])
+
+    assert len(train_match_ids & val_match_ids) == 0, "Fuite de match_id entre Train et Validation !"
+    assert len(train_match_ids & test_match_ids) == 0, "Fuite de match_id entre Train et Test !"
+    assert len(val_match_ids & test_match_ids) == 0, "Fuite de match_id entre Validation et Test !"
+
     final_df = pd.concat([train_df, val_df, test_df], ignore_index=True)
     final_df = final_df.sort_values("match_id").reset_index(drop=True)
 
@@ -168,16 +209,20 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
     print("STATISTIQUES D'INDEXATION CS2CD")
     print("=" * 60)
     print(f"Total fichiers scannés : {stats['total_scanned']}")
+    print(f"  - Fichiers .parquet  : {stats['parquet_count']}")
+    print(f"  - Fichiers .csv.gz   : {stats['csv_gz_count']}")
+    print(f"  - Fichiers .json     : {stats['json_count']}")
     print(f"Matches valides        : {stats['valid_matches']}")
     print(f"JSON manquants         : {stats['missing_json']}")
+    print(f"JSON orphelins         : {stats['unlinked_json']}")
     print(f"JSON corrompus         : {stats['corrupt_json']}")
     print(f"Matches avec tricheurs : {stats['with_cheater']}")
     print(f"Matches sans tricheur  : {stats['no_cheater']}")
     print(f"Total tricheurs uniques: {stats['total_cheater_ids']}")
     print("-" * 60)
-    print(f"Split Train      : {len(train_df)} matches")
-    print(f"Split Validation : {len(val_df)} matches")
-    print(f"Split Test       : {len(test_df)} matches")
+    print(f"Split Train      : {len(train_df)} matches (100% disjoint)")
+    print(f"Split Validation : {len(val_df)} matches (100% disjoint)")
+    print(f"Split Test       : {len(test_df)} matches (100% disjoint)")
     print("=" * 60)
 
     return final_df

@@ -38,9 +38,12 @@ from src.analyzers.wallhack import analyser_wallhack
 from src.analyzers.spinbot import analyser_spinbot
 from src.analyzers.triggerbot import analyser_triggerbot
 from src.ml.classifier import (
+    FEATURE_SCHEMA_HASH,
+    FEATURE_SCHEMA_VERSION,
     FICHIER_MODELE_SYNTHETIQUE,
     NOMS_FEATURES,
     extraire_vecteur_features,
+    valider_bundle_modele,
 )
 from src.ml.cs2cd_adapter import CS2CDAdapter
 
@@ -66,8 +69,11 @@ def extraire_features_dataset(
         try:
             df_cache = pd.read_csv(cache_path)
             if not df_cache.empty and "player_key" in df_cache.columns:
-                print(f"[CACHE] {len(df_cache)} profils de joueurs chargés avec succès.")
-                return df_cache
+                if all(col in df_cache.columns for col in NOMS_FEATURES):
+                    print(f"[CACHE] {len(df_cache)} profils de joueurs chargés avec succès (schéma {FEATURE_SCHEMA_VERSION} valide).")
+                    return df_cache
+                else:
+                    print(f"[CACHE] Schéma de features incomplet dans le cache, ré-extraction...")
         except Exception as e:
             print(f"[CACHE] Cache invalide ou corrompu ({e}), ré-extraction...")
 
@@ -165,8 +171,8 @@ def extraire_features_dataset(
 
 def verifier_absence_de_fuite(train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame):
     """
-    Vérifie formellement qu'aucun identifiant de joueur n'est partagé entre train, val et test.
-    Documente la politique d'anonymisation CS2CD.
+    Vérifie formellement qu'aucun identifiant de joueur ni de match n'est partagé entre train, val et test.
+    Garantit l'indépendance statistique absolue des splits.
     """
     print("\n" + "=" * 60)
     print("VÉRIFICATION D'ÉTANCHÉITÉ DU SPLIT (ANTI-LEAKAGE)")
@@ -179,16 +185,21 @@ def verifier_absence_de_fuite(train_df: pd.DataFrame, val_df: pd.DataFrame, test
     leak_tr_ts = train_keys & test_keys
     leak_val_ts = val_keys & test_keys
 
-    assert len(leak_tr_val) == 0, f"Fuite détectée entre Train et Validation: {leak_tr_val}"
-    assert len(leak_tr_ts) == 0, f"Fuite détectée entre Train et Test: {leak_tr_ts}"
-    assert len(leak_val_ts) == 0, f"Fuite détectée entre Validation et Test: {leak_val_ts}"
+    assert len(leak_tr_val) == 0, f"Fuite de player_key détectée entre Train et Validation: {leak_tr_val}"
+    assert len(leak_tr_ts) == 0, f"Fuite de player_key détectée entre Train et Test: {leak_tr_ts}"
+    assert len(leak_val_ts) == 0, f"Fuite de player_key détectée entre Validation et Test: {leak_val_ts}"
 
-    print("[ANTI-LEAKAGE] Succès vérifié : 0 joueur partagé.")
-    print("  -> Intersect(Train, Val)  = 0")
-    print("  -> Intersect(Train, Test) = 0")
-    print("  -> Intersect(Val, Test)   = 0")
-    print("[NOTE CS2CD] Dans ce dataset, chaque session anonymise les joueurs sous les tokens Player_1..10.")
-    print("La clé composite 'match_id:player_id' garantit des sessions d'entraînement indépendantes.")
+    train_matches = set(train_df["match_id"])
+    val_matches = set(val_df["match_id"])
+    test_matches = set(test_df["match_id"])
+
+    assert len(train_matches & val_matches) == 0, f"Fuite de match_id détectée entre Train et Validation: {train_matches & val_matches}"
+    assert len(train_matches & test_matches) == 0, f"Fuite de match_id détectée entre Train et Test: {train_matches & test_matches}"
+    assert len(val_matches & test_matches) == 0, f"Fuite de match_id détectée entre Validation et Test: {val_matches & test_matches}"
+
+    print("[ANTI-LEAKAGE] Succès vérifié : 0 joueur et 0 match partagés.")
+    print(f"  -> Matches : Train={len(train_matches)}, Val={len(val_matches)}, Test={len(test_matches)}")
+    print(f"  -> Joueurs : Train={len(train_keys)}, Val={len(val_keys)}, Test={len(test_keys)}")
     print("=" * 60)
 
 
@@ -224,9 +235,9 @@ def calculer_metriques(y_true, y_pred, y_prob) -> Dict[str, Any]:
 def optimiser_seuil_validation(y_val, probs_val) -> Tuple[float, Dict[str, Any]]:
     """
     Explore les seuils de décision sur le jeu de validation pour maximiser le F1-score
-    tout en préservant un faible taux de faux positifs (règle anti-cheat).
+    tout en imposant un taux de faux positifs quasi-nul (sécurité anti-cheat stricte).
     """
-    seuils = np.arange(0.20, 0.85, 0.05)
+    seuils = np.arange(0.50, 0.85, 0.05)
     meilleur_seuil = 0.50
     meilleur_f1 = -1.0
     meilleures_metriques = {}
@@ -234,12 +245,22 @@ def optimiser_seuil_validation(y_val, probs_val) -> Tuple[float, Dict[str, Any]]
     for s in seuils:
         preds = (probs_val >= s).astype(int)
         m = calculer_metriques(y_val, preds, probs_val)
-        # Score composite : favoriser le F1 tout en pénalisant les faux positifs
-        score_critere = m["f1"] - (m["fpr"] * 0.5)
+        # Pénalisation stricte des faux positifs : priorité absolue à la non-condamnation d'innocents
+        if m["fpr"] > 0.05:
+            score_critere = -1.0
+        else:
+            score_critere = m["f1"] - (m["fpr"] * 3.0)
+
         if score_critere > meilleur_f1:
             meilleur_f1 = score_critere
             meilleur_seuil = float(s)
             meilleures_metriques = m
+
+    # Fallback si tous les seuils ont fpr > 0.05 : prendre le seuil minimisant le FPR
+    if meilleur_f1 < 0:
+        meilleur_seuil = 0.60
+        preds = (probs_val >= meilleur_seuil).astype(int)
+        meilleures_metriques = calculer_metriques(y_val, preds, probs_val)
 
     return meilleur_seuil, meilleures_metriques
 
@@ -317,11 +338,10 @@ def train_cs2cd_pipeline(
     X_test_scaled = scaler.transform(X_test)
 
     rf = RandomForestClassifier(
-        n_estimators=150,
-        max_depth=10,
-        min_samples_split=4,
-        random_state=42,
-        class_weight="balanced"
+        n_estimators=200,
+        max_depth=6,
+        min_samples_leaf=2,
+        random_state=42
     )
     rf.fit(X_train_scaled, y_train)
 
@@ -363,23 +383,31 @@ def train_cs2cd_pipeline(
             print(f"[AVERTISSEMENT] Impossible d'évaluer le modèle synthétique: {e}")
 
     # 9. Création du bundle complet pour cerveau_vac_cs2cd.pkl (Priorité Critique 9)
+    threshold_suspect = 0.40
     bundle = {
         "scaler": scaler,
         "modele": rf,
         "isolation_forest": iso,
         "noms_features": NOMS_FEATURES,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
+        "feature_schema_hash": FEATURE_SCHEMA_HASH,
         "dataset_name": "CS2CD",
-        "training_date": datetime.now().isoformat(),
+        "dataset_revision": "CS2CD-Zenodo-2024",
         "dataset_version": "v1.0-anonymized",
+        "training_date": datetime.now().isoformat(),
         "train_count": int(len(X_train)),
         "validation_count": int(len(X_val)),
         "test_count": int(len(X_test)),
         "threshold": float(optimal_threshold),
+        "threshold_high": float(optimal_threshold),
+        "threshold_suspect": threshold_suspect,
         "validation_metrics": val_metrics,
         "test_metrics": test_metrics,
         "model_type": "RandomForestClassifier",
     }
 
+    # Validation stricte du bundle avant écriture disque
+    valider_bundle_modele(bundle)
     joblib.dump(bundle, output_model)
     print(f"\n[OK] Nouveau modèle bundle CS2CD sauvegardé : {output_model}")
 

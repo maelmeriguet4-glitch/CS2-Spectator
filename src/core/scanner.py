@@ -29,7 +29,40 @@ class ReplayScanner:
         "steamapps", "common", "Counter-Strike Global Offensive", "csgo", "replays"
     )  # Legacy CSGO avant 'game/' (même chemin post-migration, gardé pour compat)
 
-    COMMON_DRIVES = ["D", "C", "E", "F", "G", "H"]
+    COMMON_DRIVES = ["C", "D", "E", "F", "G", "H"]
+
+    @classmethod
+    def get_available_drives(cls) -> List[str]:
+        """Detects available drives on Windows dynamically with fallback."""
+        drives: List[str] = []
+        if sys.platform == "win32":
+            if hasattr(os, "listdrives"):
+                try:
+                    for d in os.listdrives():
+                        drive_letter = d.rstrip(":\\/").upper()
+                        if drive_letter and drive_letter not in drives:
+                            drives.append(drive_letter)
+                except Exception:
+                    pass
+            if not drives:
+                try:
+                    import ctypes
+                    bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+                    for letter_code in range(26):
+                        if bitmask & (1 << letter_code):
+                            drives.append(chr(ord('A') + letter_code))
+                except Exception:
+                    pass
+        if not drives:
+            drives = ["C", "D", "E", "F", "G", "H"]
+        ordered: List[str] = []
+        for p in ["C", "D"]:
+            if p in drives:
+                ordered.append(p)
+        for d in drives:
+            if d not in ordered:
+                ordered.append(d)
+        return ordered
 
     @classmethod
     def get_steam_install_path(cls) -> Optional[str]:
@@ -193,7 +226,7 @@ class ReplayScanner:
                 library_paths.append(steam_path)
 
         # Fallback drive checks
-        for drive in cls.COMMON_DRIVES:
+        for drive in cls.get_available_drives():
             drive_libs = [
                 f"{drive}:\\SteamLibrary",
                 f"{drive}:\\Program Files (x86)\\Steam",

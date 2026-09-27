@@ -13,41 +13,48 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# Colonnes minimales requises pour alimenter l'ensemble des analyseurs
-COLONNES_REQUISES_TICKS = [
+# Colonnes critiques indispensables : si l'une d'entre elles manque, le match est inexploitable
+COLONNES_CRITIQUES = [
     "tick",
     "steamid",
-    "team_num",
     "X",
     "Y",
     "Z",
     "pitch",
     "yaw",
-    "health",
-    "spotted",
-    "velocity_X",
-    "velocity_Y",
-    "velocity_Z",
-    "is_airborne",
-    "active_weapon_name",
-    "shots_fired",
 ]
+
+# Colonnes optionnelles avec valeurs neutres documentées
+COLONNES_OPTIONNELLES: Dict[str, Any] = {
+    "team_num": 0,
+    "health": 100,
+    "spotted": False,
+    "velocity_X": 0.0,
+    "velocity_Y": 0.0,
+    "velocity_Z": 0.0,
+    "is_airborne": False,
+    "active_weapon_name": "weapon_unknown",
+    "shots_fired": 0,
+}
+
+COLONNES_REQUISES_TICKS = COLONNES_CRITIQUES + list(COLONNES_OPTIONNELLES.keys())
 
 
 class CS2CDAdapter:
     """
-    Adaptateur haute performance pour les replays CS2CD.
-    Lit les ticks (Parquet) par projection de colonnes (économie RAM)
-    et structure les événements (JSON) pour compatibilité avec DemoData.
+    Adaptateur universel pour les replays CS2CD.
+    Prend en charge nativement les fichiers Parquet (.parquet) et CSV compressés (.csv.gz)
+    sans duplication du dataset. Valide strictement la présence des colonnes critiques.
     """
 
-    def __init__(self, parquet_path: str, json_path: str):
-        self.chemin_demo = parquet_path
+    def __init__(self, demo_table_path: str, json_path: str):
+        self.chemin_demo = demo_table_path
         self.chemin_json = json_path
         self.valide = False
+        self.format_source = "unknown"
         self.header: Dict[str, Any] = {
             "map_name": "unknown",
-            "server_name": "CS2CD_Server",
+            "server_name": "CS2CD_Dataset",
             "playback_time": 0.0,
         }
 
@@ -59,52 +66,73 @@ class CS2CDAdapter:
         self.joueurs: List[str] = []
         self.joueurs_info: Dict[str, Dict[str, Any]] = {}
 
-        if not os.path.exists(parquet_path) or not os.path.exists(json_path):
-            logger.warning(f"[CS2CDAdapter] Fichier introuvable: {parquet_path} ou {json_path}")
+        if not os.path.exists(demo_table_path) or not os.path.exists(json_path):
+            logger.warning(f"[CS2CDAdapter] Fichier introuvable: {demo_table_path} ou {json_path}")
             return
 
-        self._charger_ticks(parquet_path)
+        self._charger_ticks(demo_table_path)
         self._charger_evenements(json_path)
 
         if not self.ticks.empty and len(self.joueurs) > 0:
             self.valide = True
 
-    def _charger_ticks(self, parquet_path: str):
-        """Charge uniquement les colonnes nécessaires via PyArrow et nettoie les données."""
+    def _charger_ticks(self, table_path: str):
+        """Charge les ticks depuis Parquet ou CSV.GZ avec vérification stricte des colonnes critiques."""
         try:
-            import pyarrow.parquet as pq
+            path_lower = table_path.lower()
+            df = None
 
-            schema = pq.read_schema(parquet_path)
-            cols_dispos = set(schema.names)
-            cols_a_lire = [c for c in COLONNES_REQUISES_TICKS if c in cols_dispos]
+            if path_lower.endswith(".parquet"):
+                self.format_source = "parquet"
+                import pyarrow.parquet as pq
+                schema = pq.read_schema(table_path)
+                cols_dispos = set(schema.names)
 
-            # Charger uniquement les colonnes utiles
-            df = pd.read_parquet(parquet_path, columns=cols_a_lire)
+                # Vérification stricte des colonnes critiques
+                cols_manquantes = [c for c in COLONNES_CRITIQUES if c not in cols_dispos]
+                if cols_manquantes:
+                    logger.warning(f"[CS2CDAdapter] Rejet du fichier {table_path} : colonnes critiques manquantes {cols_manquantes}")
+                    self.valide = False
+                    return
 
-            if df.empty:
+                cols_a_lire = [c for c in COLONNES_REQUISES_TICKS if c in cols_dispos]
+                df = pd.read_parquet(table_path, columns=cols_a_lire)
+
+            elif path_lower.endswith(".csv.gz") or path_lower.endswith(".csv"):
+                self.format_source = "csv.gz" if path_lower.endswith(".csv.gz") else "csv"
+                # Inspecter l'en-tête CSV pour vérifier les colonnes critiques
+                import gzip
+                open_fn = gzip.open if path_lower.endswith(".csv.gz") else open
+                with open_fn(table_path, "rt", encoding="utf-8", errors="ignore") as f:
+                    header_line = f.readline()
+                cols_dispos = set(c.strip().strip('"') for c in header_line.split(","))
+
+                cols_manquantes = [c for c in COLONNES_CRITIQUES if c not in cols_dispos]
+                if cols_manquantes:
+                    logger.warning(f"[CS2CDAdapter] Rejet du fichier CSV {table_path} : colonnes critiques manquantes {cols_manquantes}")
+                    self.valide = False
+                    return
+
+                cols_a_lire = [c for c in COLONNES_REQUISES_TICKS if c in cols_dispos]
+                df = pd.read_csv(table_path, usecols=cols_a_lire, compression="gzip" if path_lower.endswith(".csv.gz") else None)
+
+            else:
+                logger.warning(f"[CS2CDAdapter] Format de fichier non supporté : {table_path}")
                 return
 
-            # Garantir la présence de toutes les colonnes requises avec valeurs par défaut
-            for col in COLONNES_REQUISES_TICKS:
+            if df is None or df.empty:
+                return
+
+            # Compléter uniquement les colonnes optionnelles avec leurs valeurs neutres documentées
+            for col, val_defaut in COLONNES_OPTIONNELLES.items():
                 if col not in df.columns:
-                    if col == "active_weapon_name":
-                        df[col] = "weapon_unknown"
-                    elif col == "is_airborne":
-                        df[col] = False
-                    elif col == "spotted":
-                        df[col] = False
-                    elif col == "health":
-                        df[col] = 100
-                    elif col == "steamid":
-                        df[col] = "Player_Unknown"
-                    else:
-                        df[col] = 0.0
+                    df[col] = val_defaut
 
             # Normaliser types et valeurs
             df["tick"] = pd.to_numeric(df["tick"], errors="coerce").fillna(0).astype(int)
             df["steamid"] = df["steamid"].astype(str).str.strip()
-            df["name"] = df["steamid"]  # Couche identité interne cohérente
-            df["health"] = pd.to_numeric(df["health"], errors="coerce").fillna(0)
+            df["name"] = df["steamid"]  # Couche identité interne
+            df["health"] = pd.to_numeric(df["health"], errors="coerce").fillna(100)
             df["team_num"] = pd.to_numeric(df["team_num"], errors="coerce").fillna(0).astype(int)
 
             # Nettoyer Inf / NaN dans les colonnes numériques
@@ -116,22 +144,24 @@ class CS2CDAdapter:
 
             self.ticks = df
 
-            # Extraire les joueurs uniques
+            # Extraire les joueurs uniques et structurer l'identité
             joueurs_trouves = sorted(df["steamid"].dropna().unique().tolist())
             self.joueurs = [j for j in joueurs_trouves if j and j != "0" and j != "Player_Unknown"]
 
-            # Extraire équipes représentatives
             for p in self.joueurs:
                 p_teams = df[df["steamid"] == p]["team_num"]
                 team_val = int(p_teams.mode().iloc[0]) if not p_teams.empty and not p_teams.mode().empty else 0
                 self.joueurs_info[p] = {
-                    "steamid": p,
+                    "player_id": p,
                     "name": p,
+                    "steamid": p,
+                    "is_anonymized": True,
+                    "steamid64": None,  # Explicitement None pour les joueurs anonymisés CS2CD
                     "team": team_val,
                 }
 
         except Exception as e:
-            logger.error(f"[CS2CDAdapter] Erreur chargement ticks Parquet {parquet_path}: {e}")
+            logger.error(f"[CS2CDAdapter] Erreur chargement ticks {table_path}: {e}")
             self.ticks = pd.DataFrame()
 
     def _charger_evenements(self, json_path: str):

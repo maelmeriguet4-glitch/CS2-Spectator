@@ -29,9 +29,15 @@ class AntiCheatEngine:
     and cheat classification pipeline.
     """
 
-    def __init__(self, model_path: Optional[str] = None, use_cache: bool = True):
+    def __init__(
+        self,
+        model_path: Optional[str] = None,
+        model_type: Optional[str] = None,
+        use_cache: bool = True,
+    ):
         self.config = get_config()
-        self.classifier = CheatClassifier(model_path=model_path)
+        self.model_type = model_type or getattr(self.config, "default_model_type", "cs2cd")
+        self.classifier = CheatClassifier(model_path=model_path, model_type=self.model_type)
         self.use_cache = use_cache
 
     def analyze_demo(
@@ -49,18 +55,19 @@ class AntiCheatEngine:
                 try:
                     progress_callback(pct, msg)
                 except Exception as _e:
-                        import logging
-                        logging.debug(f"Ignored error: {_e}")
+                    import logging
+                    logging.debug(f"Ignored error: {_e}")
             if progress_queue is not None:
                 try:
                     progress_queue.put(("PROGRESS", pct, msg))
                 except Exception as _e:
-                        import logging
-                        logging.debug(f"Ignored error: {_e}")
+                    import logging
+                    logging.debug(f"Ignored error: {_e}")
 
-        # 0. Vérification du cache local instantané
+        # 0. Vérification du cache local instantané avec empreinte du modèle
+        model_fp = self.classifier.get_fingerprint() if hasattr(self.classifier, "get_fingerprint") else None
         if self.use_cache:
-            cached_result = load_cached_analysis(demo_path)
+            cached_result = load_cached_analysis(demo_path, model_fingerprint=model_fp)
             if cached_result is not None:
                 _report(0.05, f"Démo trouvée dans le cache : {cached_result.map_name}...")
                 _report(0.20, f"Chargement depuis le cache : {cached_result.map_name}...")
@@ -241,10 +248,13 @@ class AntiCheatEngine:
             duration_seconds=demo_data.duration_seconds,
             players=analyzed_players,
             global_verdict=global_verdict,
+            model_type=getattr(self.classifier, "dataset_name", "cs2cd"),
+            model_version=getattr(self.classifier, "dataset_revision", "2.4.1"),
+            feature_schema_version=getattr(self.config, "feature_schema_version", "1.0"),
         )
 
-        # Sauvegarde dans le cache JSON (GZIP)
+        # Sauvegarde dans le cache JSON (GZIP) avec empreinte de modèle
         if self.use_cache:
-            save_analysis_cache(demo_path, match_result)
+            save_analysis_cache(demo_path, match_result, model_fingerprint=model_fp)
 
         return match_result

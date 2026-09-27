@@ -59,23 +59,56 @@ class PlayerTelemetry:
     spinbot_metrics: Dict[str, float] = field(default_factory=dict)
     triggerbot_metrics: Dict[str, float] = field(default_factory=dict)
     suspicion_score: float = 0.0  # 0.0 to 100.0
-    verdict: str = "CLEAN"  # "CLEAN", "SUSPECT", "CHEATER"
+    verdict: str = "CLEAN"  # "CLEAN", "SUSPECT", "CHEATER", "ERROR", "INSUFFICIENT_DATA"
+    analysis_status: str = "ok"  # "ok", "insufficient_data", "error"
+    data_quality: str = "good"  # "good", "partial", "insufficient"
+    player_id: str = ""  # Identifiant interne (ex: Player_1 ou steamid)
+    steamid64: Optional[str] = None  # Vrai SteamID64 si disponible, None si anonymisé
     violation_flags: List[str] = field(default_factory=list)
     combat_events: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self):
-        """Validation post-initialisation : clamp score, normaliser verdict."""
+        """Validation post-initialisation : clamp score, normaliser verdict sans masquer les erreurs."""
         # Clamp suspicion_score dans [0.0, 100.0]
         self.suspicion_score = max(0.0, min(100.0, float(self.suspicion_score)))
-        # Normaliser le verdict
-        valid_verdicts = {"CLEAN", "SUSPECT", "CHEATER"}
-        if self.verdict not in valid_verdicts:
+        
+        # Affecter player_id par défaut si absent
+        if not self.player_id:
+            self.player_id = self.steamid or self.name
+
+        # Déterminer steamid64 valide si le steamid est un vrai SteamID64
+        if self.steamid and _STEAMID64_PATTERN.match(self.steamid):
+            self.steamid64 = self.steamid
+
+        # Gestion des états d'erreur et données insuffisantes (ne JAMAIS transformer en CLEAN)
+        norm_v = str(self.verdict).upper().strip()
+        norm_status = str(self.analysis_status).lower().strip()
+
+        if norm_v == "ERROR" or norm_status == "error":
+            self.verdict = "ERROR"
+            self.analysis_status = "error"
+            self.data_quality = "insufficient"
+        elif norm_v in {"INSUFFICIENT_DATA", "INDISPONIBLE"} or norm_status == "insufficient_data":
+            self.verdict = "INSUFFICIENT_DATA"
+            self.analysis_status = "insufficient_data"
+            self.data_quality = "insufficient"
+        elif norm_v in {"CLEAN", "SUSPECT", "CHEATER"}:
+            self.verdict = norm_v
+            if self.analysis_status not in {"insufficient_data", "error"}:
+                self.analysis_status = "ok"
+        else:
             self.verdict = "CLEAN"
+            self.analysis_status = "ok"
 
     @property
     def is_valid_steamid(self) -> bool:
         """Vérifie si le SteamID64 est un identifiant numérique valide de 17 chiffres."""
         return bool(_STEAMID64_PATTERN.match(self.steamid))
+
+    @property
+    def is_anonymized_player(self) -> bool:
+        """Indique si le joueur utilise un identifiant anonymisé (ex: CS2CD Player_X)."""
+        return not self.is_valid_steamid or self.steamid.startswith("Player_")
 
     def to_dict(self) -> Dict[str, Any]:
         """Sérialise la télémétrie en dictionnaire JSON-compatible."""
@@ -90,6 +123,10 @@ class PlayerTelemetry:
             "triggerbot_metrics": dict(self.triggerbot_metrics),
             "suspicion_score": self.suspicion_score,
             "verdict": self.verdict,
+            "analysis_status": self.analysis_status,
+            "data_quality": self.data_quality,
+            "player_id": self.player_id,
+            "steamid64": self.steamid64,
             "violation_flags": list(self.violation_flags),
             "combat_events": list(self.combat_events),
         }
@@ -108,6 +145,10 @@ class PlayerTelemetry:
             triggerbot_metrics=data.get("triggerbot_metrics", {}),
             suspicion_score=float(data.get("suspicion_score", 0.0)),
             verdict=str(data.get("verdict", "CLEAN")),
+            analysis_status=str(data.get("analysis_status", "ok")),
+            data_quality=str(data.get("data_quality", "good")),
+            player_id=str(data.get("player_id", "")),
+            steamid64=data.get("steamid64"),
             violation_flags=data.get("violation_flags", []),
             combat_events=data.get("combat_events", []),
         )
@@ -124,6 +165,9 @@ class MatchAnalysisResult:
     players: List[PlayerTelemetry]
     global_verdict: str
     engine_version: str = "3.1.0"
+    model_type: str = "cs2cd"
+    model_version: str = "2.4.1"
+    feature_schema_version: str = "1.0"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -135,6 +179,9 @@ class MatchAnalysisResult:
             "players": [p.to_dict() for p in self.players],
             "global_verdict": self.global_verdict,
             "engine_version": self.engine_version,
+            "model_type": self.model_type,
+            "model_version": self.model_version,
+            "feature_schema_version": self.feature_schema_version,
         }
 
     @classmethod
@@ -146,6 +193,9 @@ class MatchAnalysisResult:
             total_ticks=data.get("total_ticks", 0),
             duration_seconds=data.get("duration_seconds", 0.0),
             players=[PlayerTelemetry.from_dict(p) for p in data.get("players", [])],
-            global_verdict=data.get("global_verdict", "CLEAN"),
+            global_verdict=data.get("global_verdict", "AUCUN SIGNAL FORT DÉTECTÉ"),
             engine_version=data.get("engine_version", "3.1.0"),
+            model_type=data.get("model_type", "cs2cd"),
+            model_version=data.get("model_version", "2.4.1"),
+            feature_schema_version=data.get("feature_schema_version", "1.0"),
         )

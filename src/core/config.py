@@ -62,6 +62,8 @@ class AnalysisConfig:
     triggerbot_tickrate: float = 64.0             # tickrate du serveur
     
     # === ML / Classifier ===
+    default_model_type: str = "cs2cd"            # "cs2cd" (production) ou "synthetic" (baseline/dev)
+    feature_schema_version: str = "1.0"          # version canonique du schéma des 15 features
     ml_suspect_threshold: float = 0.60           # probabilité ML pour SUSPECT (60%)
     ml_cheater_threshold: float = 0.80           # probabilité ML pour CHEATER (80%)
     ml_n_estimators: int = 200                   # arbres Random Forest

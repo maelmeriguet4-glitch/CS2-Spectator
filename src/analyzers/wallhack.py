@@ -276,9 +276,19 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
                 "wh_info_timing_ratio": 0.0,
             }
             locks = []
-            if ratio_strict > 0.5 or tracking >= 20:
-                enemy_id = str(enemy_ticks.iloc[0].get('steamid', 'Enemy')) if not enemy_ticks.empty else 'Enemy'
-                locks.append({"start_tick": int(occluded.iloc[0]['tick']), "end_tick": int(occluded.iloc[-1]['tick']), "duration_ticks": int(tracking), "target_name": "Victim", "target_steamid": enemy_id, "distance": dist_moy})
+            if (ratio_strict > 0.5 or tracking >= 20) and not occluded.empty:
+                enemy_name = str(enemy_ticks.iloc[0].get('name', 'Target')) if not enemy_ticks.empty else 'Target'
+                enemy_id = str(enemy_ticks.iloc[0].get('steamid', enemy_name)) if not enemy_ticks.empty else enemy_name
+                locks.append({
+                    "type": "wh_lock",
+                    "start_tick": int(occluded.iloc[0]['tick']),
+                    "end_tick": int(occluded.iloc[-1]['tick']),
+                    "duration_ticks": int(tracking),
+                    "target_name": enemy_name,
+                    "target_steamid": enemy_id,
+                    "distance": round(float(dist_moy), 2),
+                    "description": "Alignement continu sur cible occluse (sans visibilité directe)",
+                })
             return WallhackResult(metrics=metrics, flagged_locks=locks)
         except Exception:
             import traceback; traceback.print_exc()
@@ -291,15 +301,7 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
         profil = {k: float(v) for k, v in profil.items()}
     else:
         profil = {"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0.0, "wh_distance_moyenne_verrous": 0.0, "wh_preaim_score": 0.0, "wh_info_timing_ratio": 0.0}
-    locks = []
-    if profil.get("wh_tracking_consecutif_max", 0) >= 80 or profil.get("wh_ratio_lock_strict", 0) > 0.12:
-        locks.append({
-            "start_tick": 0,
-            "end_tick": int(profil.get("wh_tracking_consecutif_max", 0)),
-            "duration_ticks": int(profil.get("wh_tracking_consecutif_max", 0)),
-            "target_name": "Ennemi",
-            "distance": float(profil.get("wh_distance_moyenne_verrous", 0)),
-        })
-    return WallhackResult(metrics=profil, flagged_locks=locks)
+    # Ne jamais fabriquer de ticks artificiels (start_tick=0) si la démo brute n'a pas pu être résolue
+    return WallhackResult(metrics=profil, flagged_locks=[])
 
 analyse_wallhack = analyser_wallhack

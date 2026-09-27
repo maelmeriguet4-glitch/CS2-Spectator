@@ -6,8 +6,10 @@ et le modèle entraîné sur données réelles (cerveau_vac_cs2cd.pkl).
 """
 
 from dataclasses import dataclass, field
+import hashlib
 import logging
 import os
+import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
@@ -16,6 +18,8 @@ from sklearn.ensemble import IsolationForest, RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
+
+FEATURE_SCHEMA_VERSION = "1.0"
 
 NOMS_FEATURES = [
     "aim_vitesse_max",
@@ -35,13 +39,24 @@ NOMS_FEATURES = [
     "wh_distance_moyenne_verrous",
 ]
 
-# Chemins des modèles distincts
-_DIR_RACINE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FICHIER_MODELE_SYNTHETIQUE = os.path.join(_DIR_RACINE, "cerveau_vac_custom.pkl")
-FICHIER_MODELE_CS2CD = os.path.join(_DIR_RACINE, "cerveau_vac_cs2cd.pkl")
+FEATURE_SCHEMA_HASH = hashlib.sha256(",".join(NOMS_FEATURES).encode("utf-8")).hexdigest()[:16]
+
+
+def resource_path(relative_path: str) -> str:
+    """Retourne le chemin absolu vers une ressource, compatible Dev et PyInstaller (sys._MEIPASS)."""
+    if getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.normpath(os.path.join(base, relative_path))
+
+
+# Chemins des modèles distincts via le résolveur de ressources officiel
+FICHIER_MODELE_CS2CD = resource_path("cerveau_vac_cs2cd.pkl")
+FICHIER_MODELE_SYNTHETIQUE = resource_path("cerveau_vac_custom.pkl")
 
 # Rétrocompatibilité
-FICHIER_MODELE = FICHIER_MODELE_SYNTHETIQUE
+FICHIER_MODELE = FICHIER_MODELE_CS2CD
 
 
 def extraire_vecteur_features(profil_aim, profil_bhop, profil_wh):
@@ -77,21 +92,21 @@ def generer_dataset_calibre(nb_clean=1000, nb_cheats=1000):
     y = []
 
     for _ in range(nb_clean):
-        v_max = rng.uniform(8.0, 30.0)
-        snap_max = rng.uniform(1.5, 7.0)
-        jerk_mean = rng.uniform(0.05, 0.25)
-        jerk_max = rng.uniform(2.0, 12.0)
-        micro_adj = rng.uniform(3.0, 12.0)
-        var_v = rng.uniform(0.1, 2.5)
-        sauts = rng.integers(15, 120)
-        bhop_perf = rng.uniform(0.0, 0.20)
-        bhop_var = rng.uniform(5.0, 35.0)
+        v_max = rng.uniform(4.0, 25.0)
+        snap_max = rng.uniform(1.0, 8.0)
+        jerk_mean = rng.uniform(0.05, 3.5)
+        jerk_max = rng.uniform(1.5, 12.0)
+        micro_adj = rng.uniform(0.20, 0.95)
+        var_v = rng.uniform(0.1, 15.0)
+        sauts = rng.integers(5, 120)
+        bhop_perf = rng.uniform(0.0, 0.25)
+        bhop_var = rng.uniform(5.0, 45.0)
         bhop_chain = rng.choice([0, 1, 2], p=[0.7, 0.25, 0.05])
-        bhop_spd = rng.uniform(110.0, 180.0)
-        wh_lock = rng.uniform(0.02, 0.18)
-        wh_strict = rng.uniform(0.005, 0.06)
+        bhop_spd = rng.uniform(150.0, 250.0)
+        wh_lock = rng.uniform(0.0, 0.15)
+        wh_strict = rng.uniform(0.0, 0.05)
         wh_track = rng.integers(0, 10)
-        wh_dist = rng.uniform(800.0, 2000.0)
+        wh_dist = rng.uniform(500.0, 2000.0)
         X.append([v_max, snap_max, jerk_mean, jerk_max, micro_adj, var_v,
                   sauts, bhop_perf, bhop_var, bhop_chain, bhop_spd,
                   wh_lock, wh_strict, wh_track, wh_dist])
@@ -99,35 +114,35 @@ def generer_dataset_calibre(nb_clean=1000, nb_cheats=1000):
 
     for _ in range(nb_cheats):
         type_cheat = rng.choice(["aimbot", "bhop", "wallhack", "rage"])
-        v_max = rng.uniform(8.0, 30.0)
-        snap_max = rng.uniform(1.5, 7.0)
-        jerk_mean = rng.uniform(0.05, 0.25)
-        jerk_max = rng.uniform(2.0, 12.0)
-        micro_adj = rng.uniform(3.0, 12.0)
-        var_v = rng.uniform(0.1, 2.5)
+        v_max = rng.uniform(8.0, 25.0)
+        snap_max = rng.uniform(2.0, 8.0)
+        jerk_mean = rng.uniform(0.5, 3.0)
+        jerk_max = rng.uniform(3.0, 12.0)
+        micro_adj = rng.uniform(0.3, 0.9)
+        var_v = rng.uniform(1.0, 15.0)
         sauts = rng.integers(15, 120)
         bhop_perf = rng.uniform(0.0, 0.20)
         bhop_var = rng.uniform(5.0, 35.0)
         bhop_chain = rng.choice([0, 1, 2], p=[0.7, 0.25, 0.05])
-        bhop_spd = rng.uniform(110.0, 180.0)
-        wh_lock = rng.uniform(0.02, 0.18)
-        wh_strict = rng.uniform(0.005, 0.06)
+        bhop_spd = rng.uniform(150.0, 240.0)
+        wh_lock = rng.uniform(0.02, 0.15)
+        wh_strict = rng.uniform(0.005, 0.05)
         wh_track = rng.integers(0, 10)
-        wh_dist = rng.uniform(800.0, 2000.0)
+        wh_dist = rng.uniform(500.0, 2000.0)
 
         if type_cheat == "aimbot":
-            snap_max = rng.uniform(18.5, 55.0)
-            jerk_max = rng.uniform(32.0, 120.0)
-            micro_adj = rng.uniform(0.0, 2.0)
+            snap_max = rng.uniform(20.0, 60.0)
+            jerk_max = rng.uniform(35.0, 150.0)
+            micro_adj = rng.uniform(0.0, 0.10)
         elif type_cheat == "bhop":
             bhop_perf = rng.uniform(0.70, 0.98)
             bhop_var = rng.uniform(0.0, 3.0)
             bhop_chain = rng.integers(4, 15)
-            bhop_spd = rng.uniform(240.0, 310.0)
+            bhop_spd = rng.uniform(270.0, 350.0)
         elif type_cheat == "wallhack":
-            wh_strict = rng.uniform(0.14, 0.45)
+            wh_strict = rng.uniform(0.15, 0.50)
             wh_track = rng.integers(85, 250)
-            wh_lock = rng.uniform(0.25, 0.60)
+            wh_lock = rng.uniform(0.25, 0.65)
         elif type_cheat == "rage":
             snap_max = rng.uniform(40.0, 90.0)
             jerk_max = rng.uniform(60.0, 180.0)
@@ -169,37 +184,151 @@ def entrainer_le_modele(chemin_sortie=FICHIER_MODELE_SYNTHETIQUE):
     return paquet_ia
 
 
-def charger_ou_entrainer_modele(chemin_modele=None, model_type="auto"):
-    """
-    Charge le modèle demandé sans jamais substituer silencieusement un modèle synthétique sous le nom CS2CD.
-    Options model_type: 'auto', 'cs2cd', 'synthetic'.
-    """
-    if chemin_modele:
-        cible = chemin_modele
-    elif model_type == "cs2cd":
-        cible = FICHIER_MODELE_CS2CD
-    elif model_type == "synthetic":
-        cible = FICHIER_MODELE_SYNTHETIQUE
-    else:  # auto
-        cible = FICHIER_MODELE_SYNTHETIQUE
+def valider_bundle_modele(paquet: Any) -> bool:
+    """Valide rigoureusement la structure, les dimensions et les valeurs d'un bundle de modèle."""
+    if isinstance(paquet, (str, os.PathLike)):
+        if not os.path.isfile(paquet):
+            raise ValueError(f"Fichier de modèle introuvable : {paquet}")
+        paquet = joblib.load(paquet)
+    if not isinstance(paquet, dict):
+        raise ValueError("Le bundle de modèle doit être un dictionnaire.")
+    if "modele" not in paquet or "scaler" not in paquet:
+        raise ValueError("Bundle incomplet : 'modele' et 'scaler' sont requis.")
 
-    if os.path.exists(cible):
-        try:
-            paquet = joblib.load(cible)
-            if isinstance(paquet, dict) and "modele" in paquet and "scaler" in paquet:
-                return paquet
-        except Exception as e:
-            logger.warning(f"[ML] Échec de chargement de {cible}: {e}")
-
-    if model_type == "cs2cd":
-        raise FileNotFoundError(
-            f"Le modèle CS2CD '{cible}' n'existe pas. "
-            f"Veuillez exécuter scripts/train_cs2cd.py pour l'entraîner sur les données réelles."
+    noms = paquet.get("noms_features")
+    if not noms or list(noms) != NOMS_FEATURES:
+        raise ValueError(
+            f"Schéma de features incompatible. Attendu {len(NOMS_FEATURES)} features, reçu {len(noms) if noms else 0}."
         )
 
-    # Entraîner le modèle synthétique si et seulement si cible synthétique
-    logger.info("[ML] Initialisation du modèle synthétique de référence...")
-    return entrainer_le_modele(FICHIER_MODELE_SYNTHETIQUE)
+    scaler = paquet["scaler"]
+    modele = paquet["modele"]
+    if not hasattr(scaler, "transform") or not hasattr(modele, "predict_proba"):
+        raise ValueError("Le scaler ou le modèle n'expose pas l'interface Scikit-Learn requise.")
+
+    # Vérification des seuils
+    th_high = paquet.get("threshold_high", paquet.get("threshold"))
+    if th_high is not None:
+        try:
+            val_h = float(th_high)
+            if np.isnan(val_h) or val_h <= 0.0 or val_h > 1.0:
+                raise ValueError(f"Seuil haut invalide dans le bundle : {th_high}")
+        except (ValueError, TypeError):
+            raise ValueError(f"Seuil haut non numérique : {th_high}")
+
+    th_sus = paquet.get("threshold_suspect")
+    if th_sus is not None:
+        try:
+            val_s = float(th_sus)
+            if np.isnan(val_s) or val_s <= 0.0 or val_s >= 1.0:
+                raise ValueError(f"Seuil suspect invalide dans le bundle : {th_sus}")
+        except (ValueError, TypeError):
+            raise ValueError(f"Seuil suspect non numérique : {th_sus}")
+
+    return True
+
+
+def entrainer_le_modele(chemin_sortie=FICHIER_MODELE_SYNTHETIQUE):
+    """Entraîne et sauvegarde le package d'IA anti-cheat synthétique de référence."""
+    X, y = generer_dataset_calibre(nb_clean=3000, nb_cheats=3000)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    rf = RandomForestClassifier(n_estimators=200, max_depth=12, random_state=42)
+    rf.fit(X_scaled, y)
+
+    X_clean_scaled = X_scaled[y == 0]
+    iso = IsolationForest(contamination=0.03, random_state=42)
+    iso.fit(X_clean_scaled)
+
+    paquet_ia = {
+        "scaler": scaler,
+        "modele": rf,
+        "isolation_forest": iso,
+        "noms_features": NOMS_FEATURES,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
+        "feature_schema_hash": FEATURE_SCHEMA_HASH,
+        "dataset_name": "Synthetic_Physical_CS2",
+        "dataset_revision": "v1.0-synthetic",
+        "model_type": "RandomForestClassifier",
+        "threshold_high": 0.80,
+        "threshold_suspect": 0.40,
+        "threshold": 0.80,
+    }
+
+    valider_bundle_modele(paquet_ia)
+    joblib.dump(paquet_ia, chemin_sortie)
+    return paquet_ia
+
+
+def charger_ou_entrainer_modele(chemin_modele=None, model_type=None):
+    """
+    Charge le modèle demandé sans jamais substituer silencieusement un modèle synthétique sous le nom CS2CD.
+    Si chemin_modele est fourni, il est strictement chargé (erreur si absent ou invalide).
+    Options model_type: 'cs2cd' (défaut production), 'synthetic' (baseline), 'auto'.
+    """
+    from src.core.config import get_config
+    cfg = get_config()
+
+    if chemin_modele:
+        if not os.path.exists(chemin_modele):
+            raise FileNotFoundError(f"Le fichier modèle spécifié n'existe pas : '{chemin_modele}'")
+        try:
+            paquet = joblib.load(chemin_modele)
+        except Exception as e:
+            raise ValueError(f"Impossible de désérialiser le modèle '{chemin_modele}': {e}")
+        valider_bundle_modele(paquet)
+        return paquet
+
+    # Déterminer le type de modèle par défaut
+    m_type = (model_type or getattr(cfg, "default_model_type", "cs2cd")).lower().strip()
+
+    if m_type == "cs2cd":
+        cible = FICHIER_MODELE_CS2CD
+        if not os.path.exists(cible):
+            raise FileNotFoundError(
+                f"Le modèle CS2CD '{cible}' n'existe pas. "
+                f"Veuillez exécuter scripts/train_cs2cd.py pour l'entraîner sur les données réelles."
+            )
+        try:
+            paquet = joblib.load(cible)
+        except Exception as e:
+            raise ValueError(f"Erreur de lecture du modèle CS2CD '{cible}': {e}")
+        valider_bundle_modele(paquet)
+        return paquet
+
+    elif m_type == "synthetic":
+        cible = FICHIER_MODELE_SYNTHETIQUE
+        if os.path.exists(cible):
+            try:
+                paquet = joblib.load(cible)
+                valider_bundle_modele(paquet)
+                return paquet
+            except Exception as e:
+                logger.warning(f"[ML] Échec de chargement du modèle synthétique existant ({e}), ré-entraînement...")
+        return entrainer_le_modele(cible)
+
+    elif m_type == "auto":
+        # Mode auto : priorité à CS2CD si disponible, sinon synthétique explicite
+        if os.path.exists(FICHIER_MODELE_CS2CD):
+            try:
+                paquet = joblib.load(FICHIER_MODELE_CS2CD)
+                valider_bundle_modele(paquet)
+                return paquet
+            except Exception as e:
+                logger.warning(f"[ML] Modèle CS2CD trouvé mais invalide ({e}).")
+        if os.path.exists(FICHIER_MODELE_SYNTHETIQUE):
+            try:
+                paquet = joblib.load(FICHIER_MODELE_SYNTHETIQUE)
+                valider_bundle_modele(paquet)
+                return paquet
+            except Exception as e:
+                logger.warning(f"[ML] Modèle synthétique trouvé mais invalide ({e}).")
+        logger.info("[ML] Mode auto: initialisation du modèle synthétique de référence...")
+        return entrainer_le_modele(FICHIER_MODELE_SYNTHETIQUE)
+
+    else:
+        raise ValueError(f"Type de modèle inconnu : '{model_type}'. Choisir 'cs2cd', 'synthetic' ou 'auto'.")
 
 
 def classifier_joueur(
@@ -327,32 +456,46 @@ def classifier_joueur(
         cheats_detectes.append(f"TRIGGERBOT: Burst x{b_cnt}")
         pills.append(f"[TRIGGERBOT: Burst x{b_cnt}]")
 
-    # 4. Combinaison statistique propre (sans amplification arbitraire de +25%)
-    # Si de multiples anomalies sont prouvées par des facteurs critiques, le score global reflète la certitude
-    combined_score = ml_score
-    if len(facteurs) >= 2 or any("SPINBOT" in c or "Pitch invalide" in c for c in cheats_detectes):
-        combined_score = max(combined_score, 75.0)
-    elif len(facteurs) == 1:
-        combined_score = max(combined_score, 40.0)
+    # 4. Détermination des seuils effectifs (priorité au bundle, fallback sur config)
+    th_high_b = paquet.get("threshold_high", paquet.get("threshold")) if isinstance(paquet, dict) else None
+    th_sus_b = paquet.get("threshold_suspect") if isinstance(paquet, dict) else None
 
-    # 5. Détermination du verdict (terminologie prudente & non accusatrice)
-    # Utiliser le seuil optimisé du bundle CS2CD s'il existe, sinon fallback config
-    bundle_threshold = None
-    if paquet_existant and isinstance(paquet_existant, dict):
-        bundle_threshold = paquet_existant.get("threshold")
-
-    if bundle_threshold is not None:
-        seuil_cheater = float(bundle_threshold) * 100.0
-        seuil_suspect = seuil_cheater * 0.5  # suspect = moitié du seuil optimisé
+    if th_high_b is not None:
+        seuil_cheater = float(th_high_b) * 100.0
     else:
-        seuil_cheater = cfg.ml_cheater_threshold * 100
-        seuil_suspect = cfg.ml_suspect_threshold * 100
+        seuil_cheater = cfg.ml_cheater_threshold * 100.0
 
+    if th_sus_b is not None:
+        seuil_suspect = float(th_sus_b) * 100.0
+    else:
+        seuil_suspect = cfg.ml_suspect_threshold * 100.0
+
+    # 5. Synthèse de l'indice de suspicion (combinaison continue basée sur les seuils effectifs)
+    # 5. Synthèse de l'indice de suspicion (combinaison continue basée sur les seuils effectifs)
     has_rage = any("SPINBOT" in c or "Pitch invalide" in c for c in cheats_detectes)
-    if has_rage or combined_score >= seuil_cheater or len(facteurs) >= cfg.ml_critical_factors_cheater:
+    if has_rage:
+        suspicion_score = max(ml_score, 90.0, seuil_cheater)
+    elif len(facteurs) >= cfg.ml_critical_factors_cheater:
+        suspicion_score = max(ml_score, 75.0, seuil_cheater)
+    elif len(facteurs) >= cfg.ml_critical_factors_suspect:
+        suspicion_score = max(ml_score, 45.0, seuil_suspect)
+    else:
+        est_inactif = (
+            float(profil_aim.get("aim_vitesse_max", 0.0) or 0.0) == 0.0
+            and float(profil_aim.get("aim_snap_max", 0.0) or 0.0) == 0.0
+            and float(profil_bhop.get("bhop_total_sauts", 0.0) or 0.0) == 0.0
+            and float(profil_wh.get("wh_ratio_lock_strict", 0.0) or 0.0) == 0.0
+        )
+        if est_inactif:
+            suspicion_score = min(ml_score, 5.0)
+        else:
+            suspicion_score = ml_score
+
+    # Détermination du verdict (terminologie prudente & non accusatrice)
+    if has_rage or suspicion_score >= max(70.0, seuil_cheater) or len(facteurs) >= cfg.ml_critical_factors_cheater:
         verdict = "SUSPICION ÉLEVÉE"
         statut = "high_suspicion"
-    elif combined_score >= seuil_suspect or len(facteurs) >= cfg.ml_critical_factors_suspect:
+    elif suspicion_score >= seuil_suspect or len(facteurs) >= cfg.ml_critical_factors_suspect:
         verdict = "SUSPECT"
         statut = "suspect"
     else:
@@ -361,15 +504,19 @@ def classifier_joueur(
 
     return {
         "joueur": nom_joueur,
+        "model_score": round(ml_score, 2),
         "ml_score": round(ml_score, 2),
         "anomaly_score": round(anomaly_score, 4),
-        "probabilite_triche": round(combined_score, 2),
-        "suspicion_score": round(combined_score, 2),
+        "suspicion_score": round(suspicion_score, 2),
+        "probabilite_triche": round(suspicion_score, 2),  # alias compatibilité
         "verdict": verdict,
         "statut": statut,
+        "analysis_status": "ok",
         "facteurs_suspects": facteurs,
         "cheats_detectes": cheats_detectes,
         "pills": pills,
+        "threshold_high": round(seuil_cheater, 2),
+        "threshold_suspect": round(seuil_suspect, 2),
         "profil_aim": profil_aim,
         "profil_bhop": profil_bhop,
         "profil_wh": profil_wh,
@@ -386,9 +533,12 @@ extract_feature_vector = extraire_vecteur_features
 
 @dataclass
 class ClassificationResult:
-    verdict: str  # CLEAN / SUSPECT / CHEATER
+    verdict: str  # CLEAN / SUSPECT / CHEATER / ERROR / INSUFFICIENT_DATA
     suspicion_score: float
     display_verdict: str
+    model_score: float = 0.0
+    anomaly_score: float = 0.0
+    analysis_status: str = "ok"
     critical_factors: List[str] = field(default_factory=list)
     violation_flags: List[str] = field(default_factory=list)
     pills: List[str] = field(default_factory=list)
@@ -408,22 +558,38 @@ class ClassificationResult:
 
     @property
     def probabilities(self):
-        """Alias rétrocompatible — préférer suspicion_scores."""
+        """Alias rétrocompatible déprécié — utiliser suspicion_scores."""
         return self.suspicion_scores
 
 
 class CheatClassifier:
     """Wrapper standard compatible avec tests.unit.test_ml et AntiCheatEngine."""
 
-    def __init__(self, model_path: Optional[str] = None, model_type: str = "auto"):
+    def __init__(self, model_path: Optional[str] = None, model_type: Optional[str] = None):
+        from src.core.config import get_config
+        cfg = get_config()
         self.model_path = model_path
-        self._bundle = charger_ou_entrainer_modele(chemin_modele=model_path, model_type=model_type)
+        self.model_type = model_type or getattr(cfg, "default_model_type", "cs2cd")
+        self._bundle = charger_ou_entrainer_modele(chemin_modele=model_path, model_type=self.model_type)
         self.scaler = self._bundle["scaler"]
         self.model = self._bundle["modele"]
         self.feature_names = self._bundle.get("noms_features", NOMS_FEATURES)
         self._isolation = self._bundle.get("isolation_forest")
         self.dataset_name = self._bundle.get("dataset_name", "Unknown")
+        self.dataset_revision = self._bundle.get("dataset_revision", "Unknown")
+        self.threshold_high = float(self._bundle.get("threshold_high", self._bundle.get("threshold", 0.80)))
+        self.threshold_suspect = float(self._bundle.get("threshold_suspect", 0.40))
         self.is_loaded = True
+
+    def get_fingerprint(self) -> str:
+        """Retourne l'empreinte unique du modèle pour l'invalidation du cache."""
+        h = hashlib.sha256()
+        h.update(str(self.dataset_name).encode())
+        h.update(str(self._bundle.get("training_date", "")).encode())
+        h.update(str(self.threshold_high).encode())
+        h.update(str(self.threshold_suspect).encode())
+        h.update(FEATURE_SCHEMA_HASH.encode())
+        return h.hexdigest()[:16]
 
     def predict(
         self,
@@ -453,22 +619,15 @@ class CheatClassifier:
         )
 
         score = float(res_fr.get("suspicion_score", 0.0))
+        m_score = float(res_fr.get("model_score", 0.0))
+        a_score = float(res_fr.get("anomaly_score", 0.0))
         facteurs = res_fr.get("facteurs_suspects", [])
         pills = list(res_fr.get("pills", []))
 
-        # Déterminer verdict EN pour compatibilité stricte des tests
-        # Utiliser le seuil du bundle si disponible
-        from src.core.config import get_config
-        cfg = get_config()
-        bundle_threshold = self._bundle.get("threshold") if isinstance(self._bundle, dict) else None
-        if bundle_threshold is not None:
-            seuil_high = float(bundle_threshold) * 100.0
-            seuil_sus = seuil_high * 0.5
-        else:
-            seuil_high = cfg.ml_cheater_threshold * 100
-            seuil_sus = cfg.ml_suspect_threshold * 100
+        seuil_high = self.threshold_high * 100.0
+        seuil_sus = self.threshold_suspect * 100.0
 
-        if score >= seuil_high or len(facteurs) >= 2 or any("SPINBOT" in p for p in pills):
+        if score >= max(70.0, seuil_high) or len(facteurs) >= 2 or any("SPINBOT" in p for p in pills):
             verdict_en = "CHEATER"
             display = f"🔴 CHEATER ({score:.1f}%)"
         elif score >= seuil_sus or len(facteurs) >= 1:
@@ -482,6 +641,9 @@ class CheatClassifier:
             verdict=verdict_en,
             suspicion_score=score,
             display_verdict=display,
+            model_score=m_score,
+            anomaly_score=a_score,
+            analysis_status="ok",
             critical_factors=facteurs,
             violation_flags=facteurs,
             pills=pills,

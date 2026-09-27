@@ -35,12 +35,12 @@ def export_player_report(player, demo_name: str = "Unknown_Demo", export_dir: st
     lines.append(f"VERDICT GLOBAL : {verdict} ({score:.1f}%)")
     lines.append("-" * 50)
     
-    lines.append("PREUVES DE TRICHE (FLAGS):")
+    lines.append("ANOMALIES ET SIGNAUX TÉLÉMÉTRIQUES (FLAGS):")
     if flags:
         for flag in flags:
             lines.append(f"  > {flag}")
     else:
-        lines.append("  > Aucune preuve formelle d'anomalie détectée.")
+        lines.append("  > Aucune anomalie critique détectée.")
         
     lines.append("-" * 50)
     lines.append("Rapport généré automatiquement par le modèle ML d'analyse CS2.")

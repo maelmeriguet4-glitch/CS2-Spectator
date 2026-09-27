@@ -139,6 +139,9 @@ class ReplayWatcher:
         self.observer: Optional[Observer] = None
         self.actif = False
         self._fichiers_en_cours = {}
+        self._debouncing_files = self._fichiers_en_cours
+        self._recently_notified = {}  # chemin -> (size, mtime, timestamp)
+        self._cooldown_seconds = 5.0
         self._lock = threading.Lock()
         self._active = False
 
@@ -201,6 +204,21 @@ class ReplayWatcher:
                     min_size=8,
                 )
                 if ok and self.callback:
+                    try:
+                        stat = os.stat(chemin)
+                        now = time.time()
+                        with self._lock:
+                            # Prune older than 60s
+                            stale = [k for k, v in self._recently_notified.items() if now - v[2] > 60.0]
+                            for k in stale:
+                                self._recently_notified.pop(k, None)
+                            prev = self._recently_notified.get(chemin)
+                            if prev and (now - prev[2] < self._cooldown_seconds):
+                                if prev[0] == stat.st_size and prev[1] == stat.st_mtime:
+                                    return
+                            self._recently_notified[chemin] = (stat.st_size, stat.st_mtime, now)
+                    except OSError:
+                        pass
                     try:
                         if self._is_en_callback:
                             # Build ReplayInfo

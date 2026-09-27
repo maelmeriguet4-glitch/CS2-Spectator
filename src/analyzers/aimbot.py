@@ -273,17 +273,35 @@ def analyze_aimbot(demo_data_or_path, identifier: str) -> AimbotResult:
     # Mesure directe des snaps réels observés sur les ticks (sans fabriquer d'événements synthétiques)
     ticks_df = _get_player_ticks(demo_data, identifier)
     if not ticks_df.empty and 'yaw' in ticks_df.columns and 'pitch' in ticks_df.columns and len(ticks_df) > 1:
+        ticks_df = ticks_df.sort_values('tick').reset_index(drop=True)
         y_diff = np.abs((ticks_df['yaw'].diff() + 180.0) % 360.0 - 180.0)
         p_diff = np.abs(ticks_df['pitch'].diff())
         spd = np.sqrt(y_diff**2 + p_diff**2)
+        jerk = np.abs(spd.diff())
         snap_mask = spd > 18.0
         if snap_mask.any():
-            snap_ticks = ticks_df[snap_mask]
-            for idx_row, row in snap_ticks.iterrows():
+            for idx_row in ticks_df[snap_mask].index:
+                row = ticks_df.loc[idx_row]
+                tick_curr = int(row.get("tick", 0))
+                # Trajectoire réelle entourant le snap (-3 ticks à +3 ticks)
+                start_i = max(0, idx_row - 3)
+                end_i = min(len(ticks_df), idx_row + 4)
+                surrounding = ticks_df.iloc[start_i:end_i]
+                real_traj = [
+                    {"tick": int(r.get("tick", 0)), "yaw": float(r.get("yaw", 0.0)), "pitch": float(r.get("pitch", 0.0))}
+                    for _, r in surrounding.iterrows()
+                ]
                 snaps.append({
-                    "tick": int(row.get("tick", 0)),
-                    "degrees": round(float(spd.loc[idx_row]), 2),
-                    "weapon": str(row.get("active_weapon_name", "weapon_unknown")),
+                    "type": "aim_snap",
+                    "tick": tick_curr,
+                    "snap_angle": round(float(spd.loc[idx_row]), 2),
+                    "degrees": round(float(spd.loc[idx_row]), 2),  # compatibilité rétro
+                    "angular_speed_deg_per_tick": round(float(spd.loc[idx_row]), 2),
+                    "delta_yaw": round(float(y_diff.loc[idx_row]), 2),
+                    "delta_pitch": round(float(p_diff.loc[idx_row]), 2),
+                    "jerk": round(float(jerk.loc[idx_row]) if not np.isnan(jerk.loc[idx_row]) else 0.0, 2),
+                    "weapon": str(row.get("active_weapon_name", row.get("weapon", "weapon_unknown"))),
+                    "trajectory": real_traj,
                 })
     return AimbotResult(metrics=profil, flagged_snaps=snaps)
 

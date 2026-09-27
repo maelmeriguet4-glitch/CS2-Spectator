@@ -208,6 +208,16 @@ class WatchCS2Modal(ctk.CTkToplevel):
         )
         lbl_inst.pack(fill="x", padx=16, pady=(0, 14))
 
+        # Error status label (hidden until error occurs)
+        self.lbl_error = ctk.CTkLabel(
+            container,
+            text="",
+            font=small_font(),
+            text_color="#ef4444",
+            anchor="w",
+        )
+        self.lbl_error.pack(fill="x", side="bottom", pady=(0, 6))
+
         # Bottom Action Buttons
         actions_row = ctk.CTkFrame(container, fg_color="transparent")
         actions_row.pack(fill="x", side="bottom")
@@ -284,6 +294,10 @@ class WatchCS2Modal(ctk.CTkToplevel):
                 import logging
                 logging.debug(f"Ignored error: {_e}")
 
+    def _show_launch_error(self, message: str) -> None:
+        if hasattr(self, "lbl_error") and self.lbl_error:
+            self.lbl_error.configure(text=f"⚠️ {message}")
+
     def _switch_to_cs2(self) -> None:
         self._copy_command()
         bring_cs2_to_foreground()
@@ -291,10 +305,16 @@ class WatchCS2Modal(ctk.CTkToplevel):
 
     def _force_restart_cs2(self) -> None:
         self._copy_command()
-        execute_cs2_launch(self.demo_path, self.target_tick, force_restart=True)
-        self.destroy()
+        success, msg = execute_cs2_launch(self.demo_path, self.target_tick, force_restart=True)
+        if success:
+            self.destroy()
+        else:
+            self._show_launch_error(msg)
 
     def _launch_fresh_cs2(self) -> None:
         self._copy_command()
-        execute_cs2_launch(self.demo_path, self.target_tick, force_restart=False)
-        self.destroy()
+        success, msg = execute_cs2_launch(self.demo_path, self.target_tick, force_restart=False)
+        if success:
+            self.destroy()
+        else:
+            self._show_launch_error(msg)

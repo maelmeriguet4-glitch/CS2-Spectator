@@ -65,23 +65,23 @@ def analyser_bhop(demo_ou_chemin, joueur_cible):
             "bhop_velocity_gain_max": 0.0,
         }
 
-    # Analyse des intervalles au sol entre réceptions et sauts suivants
+    # Analyse des intervalles au sol entre réceptions et sauts suivants (Deux pointeurs O(N))
     ticks_au_sol_intervalles = []
     sauts_parfaits = 0
     chaine_actuelle = 0
     chaine_max = 0
+    idx_deb = 0
+    len_deb = len(ticks_debut_saut)
+    perfect_tick_max = get_config().bhop_perfect_tick_max
 
     for t_fin in ticks_fin_saut:
-        prochain_saut = None
-        for t_deb in ticks_debut_saut:
-            if t_deb > t_fin:
-                prochain_saut = t_deb
-                break
-
-        if prochain_saut is not None:
+        while idx_deb < len_deb and ticks_debut_saut[idx_deb] <= t_fin:
+            idx_deb += 1
+        if idx_deb < len_deb:
+            prochain_saut = ticks_debut_saut[idx_deb]
             intervalle = prochain_saut - t_fin
             ticks_au_sol_intervalles.append(intervalle)
-            if intervalle <= get_config().bhop_perfect_tick_max:
+            if intervalle <= perfect_tick_max:
                 sauts_parfaits += 1
                 chaine_actuelle += 1
                 chaine_max = max(chaine_max, chaine_actuelle)
@@ -189,27 +189,54 @@ def analyze_bhop(demo_data_or_path, identifier: str) -> BhopResult:
             if total < 2:
                 vitesse = float(np.sqrt((donnees['velocity_X']**2 + donnees['velocity_Y']**2).mean())) if 'velocity_X' in donnees.columns else 0.0
                 return BhopResult(metrics={"bhop_total_sauts": float(total), "bhop_ratio_parfaits": 0.0, "bhop_variance_sol": 50.0, "bhop_chaine_max": 0.0, "bhop_vitesse_moyenne": round(vitesse, 4)}, flagged_chains=[])
+            vitesse = float(np.sqrt((donnees['velocity_X']**2 + donnees['velocity_Y']**2).mean())) if 'velocity_X' in donnees.columns else 0.0
             intervals = []
             parfaits = 0
-            chaine = 0
             chaine_max = 0
+            chains = []
+            idx_deb = 0
+            len_deb = len(ticks_debut)
+            cur_chain_start = None
+            cur_chain_end = None
+            cur_chain_len = 0
+            perfect_max = get_config().bhop_perfect_tick_max
+
             for t_fin in ticks_fin:
-                nxt = None
-                for t_deb in ticks_debut:
-                    if t_deb > t_fin:
-                        nxt = t_deb
-                        break
-                if nxt is not None:
+                while idx_deb < len_deb and ticks_debut[idx_deb] <= t_fin:
+                    idx_deb += 1
+                if idx_deb < len_deb:
+                    nxt = ticks_debut[idx_deb]
                     iv = nxt - t_fin
                     intervals.append(iv)
-                    if iv <= get_config().bhop_perfect_tick_max:
+                    if iv <= perfect_max:
                         parfaits += 1
-                        chaine += 1
-                        chaine_max = max(chaine_max, chaine)
+                        if cur_chain_len == 0:
+                            cur_chain_start = int(t_fin)
+                        cur_chain_len += 1
+                        cur_chain_end = int(nxt)
+                        chaine_max = max(chaine_max, cur_chain_len)
                     else:
-                        chaine = 0
+                        if cur_chain_len >= 4:
+                            chains.append({
+                                "type": "bhop_chain",
+                                "start_tick": cur_chain_start,
+                                "end_tick": cur_chain_end,
+                                "chain_length": cur_chain_len,
+                                "avg_speed": round(float(vitesse), 2),
+                            })
+                        cur_chain_len = 0
+                        cur_chain_start = None
+
+            if cur_chain_len >= 4:
+                chains.append({
+                    "type": "bhop_chain",
+                    "start_tick": cur_chain_start,
+                    "end_tick": cur_chain_end,
+                    "chain_length": cur_chain_len,
+                    "avg_speed": round(float(vitesse), 2),
+                })
+
             ratio = parfaits / max(len(intervals), 1) if intervals else 0.0
-            vitesse = float(np.sqrt((donnees['velocity_X']**2 + donnees['velocity_Y']**2).mean())) if 'velocity_X' in donnees.columns else 0.0
             metrics = {
                 "bhop_total_sauts": float(total),
                 "bhop_ratio_parfaits": round(float(ratio), 4),
@@ -219,9 +246,6 @@ def analyze_bhop(demo_data_or_path, identifier: str) -> BhopResult:
                 "bhop_autostrafe_correlation": 0.0,
                 "bhop_velocity_gain_max": 0.0,
             }
-            chains = []
-            if chaine_max >= 4 or (ratio > 0.60 and total >= 5):
-                chains.append({"start_tick": int(ticks_debut[0]) if ticks_debut else 0, "end_tick": int(ticks_debut[min(chaine_max, len(ticks_debut)-1)]) if ticks_debut else 0, "chain_length": chaine_max, "avg_speed": vitesse})
             return BhopResult(metrics=metrics, flagged_chains=chains)
         except Exception:
             import traceback; traceback.print_exc()
@@ -236,14 +260,7 @@ def analyze_bhop(demo_data_or_path, identifier: str) -> BhopResult:
         }
         return BhopResult(metrics=profil, flagged_chains=[])
     profil = analyser_bhop(demo_data, name)
-    chains = []
-    if profil.get("bhop_chaine_max", 0) >= 4 or (profil.get("bhop_ratio_parfaits", 0) > 0.60 and profil.get("bhop_total_sauts", 0) >= 15):
-        chains.append({
-            "start_tick": 0,
-            "end_tick": int(profil.get("bhop_chaine_max", 0) * 10),
-            "chain_length": int(profil.get("bhop_chaine_max", 0)),
-            "avg_speed": float(profil.get("bhop_vitesse_moyenne", 0)),
-        })
-    return BhopResult(metrics=profil, flagged_chains=chains)
+    # Ne jamais fabriquer de ticks artificiels (start_tick=0) si les ticks précis ne sont pas résolus
+    return BhopResult(metrics=profil, flagged_chains=[])
 
 analyse_bhop = analyser_bhop

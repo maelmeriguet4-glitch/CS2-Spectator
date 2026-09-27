@@ -1,6 +1,6 @@
 """
 CS2 Anti-Cheat — Analyseur Triggerbot
-Détection de temps de réaction inhumains entre l'alignement du viseur et le tir.
+Détection d'anomalies statistiques de temps de réaction entre l'alignement du viseur et le tir.
 """
 
 from dataclasses import dataclass, field
@@ -215,8 +215,9 @@ def analyser_triggerbot(demo_ou_chemin, joueur_cible):
                 else:
                     break
                     
+            tickrate = float(getattr(demo_data, 'tickrate', 64.0) or 64.0)
             tick_delta = tir_tick - first_aligned_tick
-            rt_ms = (tick_delta / 64.0) * 1000.0
+            rt_ms = (tick_delta / tickrate) * 1000.0
             reaction_times.append(rt_ms)
             
     if not reaction_times:
@@ -257,10 +258,10 @@ def analyze_triggerbot(demo_data_or_path, identifier: str) -> TriggerbotResult:
     
     if metrics.get("triggerbot_total_shots_analyzed", 0) > 0:
         if metrics["triggerbot_rt_median"] < 50.0:
-            flagged.append({"reason": "Inhuman median reaction time", "value": metrics["triggerbot_rt_median"]})
+            flagged.append({"reason": "Anomalously fast median reaction time", "value": metrics["triggerbot_rt_median"]})
         if metrics["triggerbot_total_shots_analyzed"] >= 3 and metrics["triggerbot_rt_std"] < 15.0:
-            flagged.append({"reason": "Inhumane consistency (std dev)", "value": metrics["triggerbot_rt_std"]})
+            flagged.append({"reason": "Statistically improbable consistency (std dev)", "value": metrics["triggerbot_rt_std"]})
         if metrics["triggerbot_burst_count"] > 0:
-            flagged.append({"reason": "Inhuman burst patterns detected", "value": metrics["triggerbot_burst_count"]})
+            flagged.append({"reason": "Sub-tick burst reaction pattern detected", "value": metrics["triggerbot_burst_count"]})
             
     return TriggerbotResult(metrics=metrics, flagged_events=flagged)

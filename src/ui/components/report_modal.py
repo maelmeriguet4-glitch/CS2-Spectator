@@ -862,20 +862,6 @@ class ReportModal(ctk.CTkToplevel):
                         if snap_event is None or ev.get("snap_angle", 0) > snap_event.get("snap_angle", 0):
                             snap_event = ev
 
-            # Fallback to aim_metrics if no combat_event object was stored
-            if not snap_event and hasattr(self.player, "aim_metrics") and self.player.aim_metrics:
-                aim_snap = float(self.player.aim_metrics.get("aim_snap_max", 0.0))
-                aim_jerk = float(self.player.aim_metrics.get("aim_jerk_max", 0.0))
-                if aim_snap >= 5.0:
-                    snap_event = {
-                        "type": "aim_snap",
-                        "snap_angle": aim_snap,
-                        "jerk": aim_jerk,
-                        "weapon": "weapon_ak47",
-                        "tick": 12800,
-                        "trajectory": [],
-                    }
-
             if not snap_event or snap_event.get("snap_angle", 0) < 5.0:
                 # Draw clean radar target
                 cx, cy = w // 2, h // 2
@@ -897,7 +883,7 @@ class ReportModal(ctk.CTkToplevel):
             traj = snap_event.get("trajectory", [])
             snap_deg = snap_event.get("snap_angle", 0.0)
             jerk_val = snap_event.get("jerk", 0.0)
-            weapon = snap_event.get("weapon", "weapon_ak47")
+            weapon = snap_event.get("weapon", "inconnu")
             tick_val = snap_event.get("tick", 0)
 
             self.lbl_vis_info.configure(
@@ -905,12 +891,16 @@ class ReportModal(ctk.CTkToplevel):
             )
 
             if len(traj) < 2:
-                # Synthesize visual interpolation if points array was empty
-                traj = [
-                    {"yaw": 0.0, "pitch": 0.0, "tick": tick_val - 1},
-                    {"yaw": snap_deg * 0.95, "pitch": snap_deg * 0.28, "tick": tick_val},
-                    {"yaw": snap_deg, "pitch": snap_deg * 0.30, "tick": tick_val + 1}
-                ]
+                # Si la trajectoire tick-par-tick n'est pas disponible, ne jamais fabriquer de points synthétiques
+                cx, cy = w // 2, h // 2
+                canvas.create_text(
+                    cx, cy,
+                    text="Trajectoire réelle indisponible\n(Données de ticks intermédiaires non enregistrées)",
+                    fill="#94a3b8",
+                    font=("Consolas", 10, "italic"),
+                    justify="center"
+                )
+                return
 
             yaws = [pt["yaw"] for pt in traj]
             pitches = [pt["pitch"] for pt in traj]

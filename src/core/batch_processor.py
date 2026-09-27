@@ -24,18 +24,23 @@ class BatchProcessor:
         self.completed_files = 0
         self.results = []
         self.errors = []
+        self.state = "IDLE"  # "IDLE", "RUNNING", "COMPLETE", "CANCELLED", "ERROR"
+        self.generation_id = 0
         
         self._manager_thread = None
         self._stop_event = threading.Event()
         self._current_process = None
 
     def start_batch(self, demo_paths: List[str]):
-        """Starts batch analysis. Uses a background thread to manage processes sequentially or in bounded parallel to avoid OOM."""
+        """Starts batch analysis. Uses a background thread to manage processes sequentially."""
+        self.stop_all()
+        self.generation_id += 1
+        current_gen = self.generation_id
         self.total_files = len(demo_paths)
         self.completed_files = 0
         self.results = []
         self.errors = []
-        self.stop_all()
+        self.state = "RUNNING"
         
         self._stop_event.clear()
         
@@ -48,15 +53,17 @@ class BatchProcessor:
                 
         self._manager_thread = threading.Thread(
             target=self._run_batch_manager, 
-            args=(demo_paths,), 
+            args=(demo_paths, current_gen), 
             daemon=True
         )
         self._manager_thread.start()
         
-    def _run_batch_manager(self, demo_paths: List[str]):
+    def _run_batch_manager(self, demo_paths: List[str], gen_id: int):
         """Runs in a background thread, spawning one analysis process at a time."""
+        was_cancelled = False
         for demo_path in demo_paths:
-            if self._stop_event.is_set():
+            if self._stop_event.is_set() or gen_id != self.generation_id:
+                was_cancelled = True
                 break
                 
             self._current_process = multiprocessing.Process(
@@ -67,17 +74,29 @@ class BatchProcessor:
             self._current_process.start()
             
             # Wait for this process to finish before starting the next
-            # This implements sequential batching, keeping memory usage bounded
             while self._current_process.is_alive():
-                if self._stop_event.is_set():
+                if self._stop_event.is_set() or gen_id != self.generation_id:
                     self._current_process.terminate()
+                    was_cancelled = True
                     break
                 self._current_process.join(timeout=0.5)
-                
-        self.msg_queue.put(("BATCH_ALL_DONE", None, None))
+
+            if was_cancelled:
+                break
+
+        if was_cancelled or self._stop_event.is_set() or gen_id != self.generation_id:
+            if gen_id == self.generation_id:
+                self.state = "CANCELLED"
+                self.msg_queue.put(("BATCH_CANCELLED", None, None))
+        else:
+            if gen_id == self.generation_id:
+                self.state = "COMPLETE"
+                self.msg_queue.put(("BATCH_ALL_DONE", None, None))
 
     def stop_all(self):
         """Stops the batch processing completely."""
         self._stop_event.set()
         if self._current_process and self._current_process.is_alive():
             self._current_process.terminate()
+        if self.state == "RUNNING":
+            self.state = "CANCELLED"

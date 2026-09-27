@@ -8,7 +8,24 @@ import os
 from logging.handlers import RotatingFileHandler
 
 _DIR_RACINE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_LOG_DIR = os.path.join(_DIR_RACINE, "data")
+
+def _get_log_dir() -> str:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        app_log_dir = os.path.join(local_app_data, "CS2AntiCheat", "logs")
+        try:
+            os.makedirs(app_log_dir, exist_ok=True)
+            return app_log_dir
+        except OSError:
+            pass
+    fallback_dir = os.path.join(_DIR_RACINE, "data")
+    try:
+        os.makedirs(fallback_dir, exist_ok=True)
+    except OSError:
+        pass
+    return fallback_dir
+
+_LOG_DIR = _get_log_dir()
 _LOG_FILE = os.path.join(_LOG_DIR, "cs2_anticheat.log")
 
 _loggers = {}

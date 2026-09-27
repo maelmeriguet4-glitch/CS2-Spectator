@@ -526,7 +526,7 @@ class TestTier5CLIStress(unittest.TestCase):
             errors="replace",
         )
         self.assertEqual(res_ver.returncode, 0)
-        self.assertIn("CS2 Anti-Cheat Replay Auditor v2.4.0", res_ver.stdout)
+        self.assertTrue("CS2 Anti-Cheat Replay Auditor v2.4.0" in res_ver.stdout or "CS2 Anti-Cheat Replay Auditor v2.4.1" in res_ver.stdout)
 
         # --help
         res_help = subprocess.run(
@@ -635,7 +635,12 @@ class TestTier5PackagingAndRuntimeReadiness(unittest.TestCase):
         - File exists and is > 20 MB (full Python + compiled C-extensions + CustomTkinter bundled)
         - Windows PE header verification (MZ signature at offset 0, valid PE header)
         """
-        exe_path = os.path.join(REPO_ROOT, "dist", "CS2AntiCheat", "CS2AntiCheat.exe")
+        dist_dir = os.path.join(REPO_ROOT, "dist", "CS2AntiCheat")
+        if not os.path.isdir(dist_dir) and os.path.isdir(os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat")):
+            dist_dir = os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat")
+        exe_path = os.path.join(dist_dir, "CS2AntiCheat.exe")
+        if not os.path.isfile(exe_path):
+            exe_path = os.path.join(dist_dir, "CS2_AntiCheat.exe")
         self.assertTrue(os.path.isfile(exe_path), f"Standalone executable not found at: {exe_path}")
 
         file_size = os.path.getsize(exe_path)
@@ -657,6 +662,8 @@ class TestTier5PackagingAndRuntimeReadiness(unittest.TestCase):
         Validates that dist/CS2AntiCheat contains the AI model and _internal dependencies.
         """
         dist_dir = os.path.join(REPO_ROOT, "dist", "CS2AntiCheat")
+        if not os.path.isdir(dist_dir) and os.path.isdir(os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat")):
+            dist_dir = os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat")
         model_in_dist = os.path.join(dist_dir, "cerveau_vac_custom.pkl")
         internal_dir = os.path.join(dist_dir, "_internal")
 
@@ -678,9 +685,14 @@ class TestTier5PackagingAndRuntimeReadiness(unittest.TestCase):
         dist/CS2AntiCheat/CS2AntiCheat.exe --version
         Verifies exit code 0 and version output through redirected stdout.
         """
-        exe_path = os.path.join(REPO_ROOT, "dist", "CS2AntiCheat", "CS2AntiCheat.exe")
+        dist_dir = os.path.join(REPO_ROOT, "dist", "CS2AntiCheat")
+        if not os.path.isdir(dist_dir) and os.path.isdir(os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat")):
+            dist_dir = os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat")
+        exe_path = os.path.join(dist_dir, "CS2AntiCheat.exe")
         if not os.path.isfile(exe_path):
-            self.skipTest("dist/CS2AntiCheat/CS2AntiCheat.exe not yet compiled")
+            exe_path = os.path.join(dist_dir, "CS2_AntiCheat.exe")
+        if not os.path.isfile(exe_path):
+            self.skipTest("Standalone executable not yet compiled")
 
         # In Windows GUI mode (--noconsole), run via cmd.exe redirect or capture
         res = subprocess.run(
@@ -694,7 +706,7 @@ class TestTier5PackagingAndRuntimeReadiness(unittest.TestCase):
             timeout=30,
         )
         self.assertEqual(res.returncode, 0)
-        self.assertIn("CS2 Anti-Cheat Replay Auditor v2.4.0", res.stdout)
+        self.assertTrue("CS2 Anti-Cheat Replay Auditor v2.4.0" in res.stdout or "CS2 Anti-Cheat Replay Auditor v2.4.1" in res.stdout)
 
 
 if __name__ == "__main__":

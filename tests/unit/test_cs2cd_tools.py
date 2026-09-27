@@ -104,8 +104,16 @@ class TestCS2CDAdapter(unittest.TestCase):
         self.assertEqual(len(hurts), 1)
 
     def test_adapter_missing_columns_fallback(self):
-        # Créer un parquet avec des colonnes manquantes
-        minimal_df = pd.DataFrame({"tick": [1, 2], "steamid": ["Player_A", "Player_A"]})
+        # Créer un parquet avec toutes les colonnes critiques mais sans les colonnes optionnelles
+        minimal_df = pd.DataFrame({
+            "tick": [1, 2],
+            "steamid": ["Player_A", "Player_A"],
+            "X": [10.0, 11.0],
+            "Y": [20.0, 21.0],
+            "Z": [0.0, 0.0],
+            "pitch": [0.0, 0.0],
+            "yaw": [90.0, 90.0],
+        })
         min_path = os.path.join(self.temp_dir, "min.parquet")
         minimal_df.to_parquet(min_path)
 
@@ -115,6 +123,16 @@ class TestCS2CDAdapter(unittest.TestCase):
         self.assertIn("pitch", ticks.columns)
         self.assertIn("is_airborne", ticks.columns)
         self.assertFalse(ticks["is_airborne"].iloc[0])
+        self.assertEqual(ticks["health"].iloc[0], 100)
+
+    def test_adapter_missing_critical_columns_rejected(self):
+        # Un fichier sans colonnes critiques (X, Y, Z, pitch, yaw) doit être rejeté
+        incomplete_df = pd.DataFrame({"tick": [1, 2], "steamid": ["Player_A", "Player_A"]})
+        inc_path = os.path.join(self.temp_dir, "inc.parquet")
+        incomplete_df.to_parquet(inc_path)
+
+        adapter = CS2CDAdapter(inc_path, self.json_path)
+        self.assertFalse(adapter.is_valid)
 
 
 class TestCS2CDDatasetIndexing(unittest.TestCase):
