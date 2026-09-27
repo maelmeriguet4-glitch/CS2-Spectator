@@ -130,34 +130,8 @@ class DemoData:
                 if n not in self.joueurs_info:
                     self.joueurs_info[n] = {"steamid": "0", "team": 0}
 
-            # === OPTIMISATION RAM : Sous-échantillonnage ===
-            # Garder 1 tick sur 4 (16 ticks/sec) sauf autour des événements critiques (tirs, blessures)
-            if 'tick' in self.ticks.columns:
-                mask_base = (self.ticks['tick'] % 4 == 0)
-                
-                critical_ticks = set()
-                if not self.tirs.empty and 'tick' in self.tirs.columns:
-                    critical_ticks.update(self.tirs['tick'].unique())
-                if not self.touches.empty and 'tick' in self.touches.columns:
-                    critical_ticks.update(self.touches['tick'].unique())
-                
-                if critical_ticks:
-                    # Créer une fenêtre de -64 à +16 ticks autour des événements (environ 1.25 seconde)
-                    # En pandas/numpy, on peut utiliser searchsorted ou array broadcasting, 
-                    # mais vu la taille, on peut faire un vecteur plus rapide.
-                    critical_array = np.array(list(critical_ticks))
-                    # Limiter la taille pour ne pas exploser la RAM lors du broadcasting
-                    if len(critical_array) > 0:
-                        # On garde tous les ticks si c'est trop petit pour optimiser,
-                        # sinon on construit l'ensemble
-                        window = np.arange(-32, 16) # -0.5s to +0.25s
-                        expanded = (critical_array[:, None] + window).flatten()
-                        expanded_set = set(expanded)
-                        mask_critical = self.ticks['tick'].isin(expanded_set)
-                        mask_base = mask_base | mask_critical
-
-                self.ticks = self.ticks[mask_base].reset_index(drop=True)
-                # ===============================================
+            # Full resolution is required for tick-sensitive analyzers (aimbot, bhop, etc)
+            # Sous-échantillonnage supprimé (Correction AUD-01)
 
     def _extraire_infos_joueurs(self):
         """Extrait SteamID64 et équipe pour chaque joueur."""

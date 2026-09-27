@@ -8,7 +8,7 @@ import sys
 import os
 
 
-def get_pyinstaller_args(target_script="main.py", app_name="CS2AntiCheat", model_file="cerveau_vac_custom.pkl", onefile=False):
+def get_pyinstaller_args(target_script="main.py", app_name="CS2AntiCheat", model_file="cerveau_vac_cs2cd.pkl", onefile=False):
     """Construit la liste d'arguments PyInstaller attendue par les tests."""
     args = []
     if onefile:
@@ -40,7 +40,7 @@ def verify_build_environment():
     """Vérifie que l'environnement permet la compilation."""
     repo = os.path.dirname(os.path.abspath(__file__))
     target_exists = os.path.isfile(os.path.join(repo, "main.py"))
-    model_exists = os.path.isfile(os.path.join(repo, "cerveau_vac_custom.pkl"))
+    model_exists = os.path.isfile(os.path.join(repo, "cerveau_vac_cs2cd.pkl"))
     try:
         import PyInstaller
         pyinstaller_installed = True
@@ -67,14 +67,14 @@ def build(verify_only=False, **kwargs):
         sys.exit(1)
 
     repo = os.path.dirname(os.path.abspath(__file__))
-    script = os.path.join(repo, "main.py")
-    modele = os.path.join(repo, "cerveau_vac_custom.pkl")
+    script = "main.py"
+    modele = "cerveau_vac_cs2cd.pkl"
 
     py_args = get_pyinstaller_args(target_script=script, app_name="CS2_AntiCheat", model_file=modele if os.path.exists(modele) else None, onefile=kwargs.get("onefile", False))
     # Extra handling for src add-data and icon
     if os.path.isdir(os.path.join(repo, "src")):
         sep2 = ";" if os.name == "nt" else ":"
-        py_args.extend(["--add-data", f"{os.path.join(repo, 'src')}{sep2}src"])
+        py_args.extend(["--add-data", f"src{sep2}src"])
 
     full_cmd = [sys.executable, "-m", "PyInstaller"] + py_args
 

@@ -24,7 +24,7 @@ class AnalysisConfig:
     aimbot_smoothing_degree: int = 3             # degré polynomial pour smoothing curve
     
     # === BunnyHop ===
-    bhop_perfect_tick_max: int = 2               # ticks max au sol pour jump "parfait"
+    bhop_perfect_tick_max: int = 1               # ticks max au sol pour jump "parfait"
     bhop_script_ratio: float = 0.55              # ratio parfaits pour flag script
     bhop_min_jumps_for_flag: int = 12            # minimum de sauts pour flag script
     bhop_chain_threshold: int = 6                # chaîne max pour flag (6+ consécutifs)
