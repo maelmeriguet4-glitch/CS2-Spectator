@@ -131,32 +131,44 @@ class TestPackagingUnit(unittest.TestCase):
         for pkg in required:
             self.assertIn(pkg, package_names, f"Package '{pkg}' missing from requirements.txt")
 
-    def test_readme_bilingual_sections(self):
-        """Verify README.md exists and contains both French and English comprehensive sections."""
+    def test_readme_documents_cs2cd_pipeline_and_release(self):
+        """Verify README documents the CS2CD workflow, cautious scores, and releases."""
         readme_path = os.path.join(REPO_ROOT, "README.md")
         self.assertTrue(os.path.isfile(readme_path), "README.md must exist")
 
         with open(readme_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Check French markers
-        self.assertIn("Français", content)
-        self.assertIn("Installation", content)
-        self.assertIn("Utilisation", content)
+        required_content = [
+            "795 matchs",
+            "52,6 Go",
+            "CS2CDAdapter",
+            "PyArrow",
+            "data/anti_cheat_dataset.example.csv",
+            "`unknown`",
+            "44,4 %",
+            "match_id:player_id",
+            "Train (70 %)",
+            "`suspicion_score`",
+            "cerveau_vac_custom.pkl",
+            "cerveau_vac_cs2cd.pkl",
+            "scripts/index_cs2cd.py",
+            "scripts/train_cs2cd.py",
+            "python -m pytest tests/unit/",
+            "108 tests unitaires",
+            "106 réussissent et 2 sont ignorés",
+            "Signaler un problème",
+        ]
+        for item in required_content:
+            self.assertIn(item, content, f"README must document '{item}'")
 
-        # Check English markers
-        self.assertIn("English", content)
-        self.assertIn("Overview", content)
-        self.assertIn("Prerequisites", content)
-
-        # Check requirements references R1 through R5
-        for r in ["R1", "R2", "R3", "R4", "R5"]:
-            self.assertIn(r, content, f"Requirement {r} must be documented in README.md")
-
-        # Check key scripts are referenced
-        self.assertIn("main.py", content)
-        self.assertIn("build_exe.py", content)
-        self.assertIn("requirements.txt", content)
+        self.assertTrue(os.path.isfile(os.path.join(REPO_ROOT, "logo.png")))
+        self.assertTrue(
+            os.path.isfile(os.path.join(REPO_ROOT, ".github", "workflows", "release.yml"))
+        )
+        self.assertTrue(
+            os.path.isfile(os.path.join(REPO_ROOT, ".github", "ISSUE_TEMPLATE", "bug_report.yml"))
+        )
 
 
 if __name__ == "__main__":

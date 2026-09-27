@@ -1,128 +1,145 @@
-# 🛡️ CS2 Anti-Cheat Dashboard
+<div align="center">
+  <img src="./logo.png" alt="Logo CS2 Spectator" width="180">
 
-> **Biomechanical Analysis & Artificial Intelligence** to detect cheaters in Counter-Strike 2.
-> **Analyse biomécanique & Intelligence Artificielle** pour détecter les tricheurs dans CS2.
-> 100% legal — No memory injection — Based on official replay files (.dem).
+  <h1>CS2 Spectator</h1>
+  <p><strong>Analyse biomécanique et apprentissage automatique des replays Counter-Strike 2.</strong></p>
+  <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
----
+  <p>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.4.0-4263EB?style=for-the-badge" alt="Version 2.4.0"></a>
+    <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
+    <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
+    <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
+  </p>
 
-## 🎯 Features / Fonctionnalités
-
-### 🔍 Automatic Detection / Détection Automatique
-- **Auto CS2 discovery** : Finds your Counter-Strike 2 install across Steam libraries (`D:\SteamLibrary\.../csgo/replays`).
-- **Real-time watcher** : Toggle "Armer la surveillance" to auto-analyze newly downloaded demos.
-- **Manual browser** : Load any external `.dem` file (tournaments, faceit, etc.).
-- **Détection auto CS2**, **surveillance temps réel**, **sélection manuelle** d'un `.dem`.
-
-### 🧠 AI Analysis Engine / Moteur IA
-- **Aimbot** : Instant angular snaps (°/tick), jerk, micro-corrections.
-- **BunnyHop** : Tick-perfect 1-tick ground transitions, humanly impossible chains.
-- **Wallhack / ESP** : 3D Source 2 eye-ray alignment vs occluded enemies, continuous tracking.
-- **Machine Learning** : RandomForest (200 trees) + IsolationForest on pro-player calibrated dataset (15 features).
-
-### 🎨 Modern Tactical GUI / Interface Tactique
-- Dark cyber theme (`#0B0F19` / `#161E2E` / `#00F0FF`) — CustomTkinter.
-- 10 rich player cards with suspicion gauge 0-100%, status badges (🟢 CLEAN / 🟡 SUSPECT / 🔴 CHEATER), violation pills.
-- SteamID64 auto-extracted, links to Steam Community & FaceitFinder.
-
-### ⚠️ Reporting Wizard / Signalement
-- Interactive QCM (6 observations) + free commentary.
-- Dual pre-formatted reports : **Steam Community** & **Faceit Support Ticket** with quantitative telemetry proof (tick, snap angles, lock duration).
-- One-click clipboard copy + direct profile open.
+  <p>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/issues/new?template=bug_report.yml">Signaler un problème</a>
+    ·
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases">Télécharger</a>
+  </p>
+</div>
 
 ---
 
-## 📦 Installation
+## Sommaire
 
-### Prérequis / Requirements
-- Python 3.10+ (tested 3.14)
-- Counter-Strike 2 installed (for auto replay discovery)
+- [Présentation](#présentation)
+- [Fonctionnalités](#fonctionnalités)
+- [Pipeline de données CS2CD](#pipeline-de-données-cs2cd)
+- [Étiquetage et protocole d'évaluation](#étiquetage-et-protocole-dévaluation)
+- [Modèles et interprétation des scores](#modèles-et-interprétation-des-scores)
+- [Installation et utilisation](#installation-et-utilisation)
+- [Indexation et entraînement CS2CD](#indexation-et-entraînement-cs2cd)
+- [Tests](#tests)
+- [Confidentialité et limites](#confidentialité-et-limites)
+- [Signaler un problème et contribuer](#signaler-un-problème-et-contribuer)
+- [Licence](#licence)
 
-### Quick Start / Démarrage Rapide
+## Présentation
+
+**CS2 Spectator** est une application de bureau destinée à l'examen après-match des démos `.dem` de Counter-Strike 2. Elle calcule des signaux biomécaniques et statistiques afin d'aider les joueurs à examiner un replay et à décider, en connaissance du contexte, si un signalement humain est justifié.
+
+L'analyse peut mettre en évidence des snaps et à-coups de visée, des enchaînements de bunnyhop, des rotations atypiques, des réactions inhabituelles ou un alignement prolongé avec des adversaires non visibles. Ces observations sont des pistes d'investigation : elles ne prouvent pas qu'un joueur triche.
+
+## Fonctionnalités
+
+- **Analyse de replays** : traitement de fichiers `.dem`, rapports de signaux par joueur et indicateurs biomécaniques.
+- **Interface graphique** : tableau de bord sombre, cartes de joueurs, progression et filtres d'équipe.
+- **Gestion des démos** : recherche locale, sélection manuelle, surveillance des nouveaux replays et analyse par lots.
+- **Import Faceit** : consultation de matchs et téléchargement sécurisé des démos depuis l'API Faceit.
+- **Aide au signalement** : rapports textuels structurés pour accompagner un examen humain.
+- **Recherche reproductible** : outils d'indexation, d'extraction de caractéristiques et d'entraînement avec CS2CD.
+
+## Pipeline de données CS2CD
+
+Le pipeline prend en charge le jeu de données de recherche réel **CS2CD** : **795 matchs, environ 52,6 Go de données brutes**. Ces fichiers restent dans le répertoire local du dataset. L'indexeur écrit un manifeste avec leurs chemins et **ne copie ni ne duplique les fichiers Parquet et JSON**.
+
+`CS2CDAdapter` adapte les enregistrements CS2CD à l'interface des analyseurs. Pour les ticks Parquet, il inspecte le schéma et ne lit que les colonnes nécessaires au moyen de PyArrow / `pandas.read_parquet(columns=...)`. Cette projection évite de charger inutilement toutes les colonnes des fichiers et réduit fortement la pression mémoire ; la mémoire disponible dépend néanmoins de la taille des fichiers et de la machine.
+
+Le dépôt fournit [`data/anti_cheat_dataset.example.csv`](data/anti_cheat_dataset.example.csv), un exemple public et anonymisé de manifeste. Il illustre les colonnes et chemins relatifs sans inclure les données brutes CS2CD.
+
+## Étiquetage et protocole d'évaluation
+
+Les catégories d'un match ne permettent pas d'attribuer automatiquement une vérité terrain à chaque joueur. La politique du pipeline est donc conservatrice :
+
+| Étiquette joueur | Attribution | Entraînement supervisé |
+|---|---|---|
+| `cheater` | Joueur explicitement annoté dans la liste des tricheurs d'un match `with_cheater_present` | Inclus, classe positive |
+| `unknown` | Joueur non annoté dans un match où un tricheur est présent | **Exclu** de l'entraînement binaire |
+| `known_non_cheater` | Joueur d'un match `no_cheater_present` | Inclus, classe négative avec confiance documentée comme moyenne |
+
+En particulier, **un joueur non annoté dans un match avec tricheur n'est pas réputé légitime**. Les annotations indirectes de CS2CD peuvent être erronées — le projet documente un taux d'erreur de **44,4 % lié au Trust Factor** pour cette population. Le pipeline conserve donc ces observations avec l'étiquette `unknown` au lieu de les convertir en exemples négatifs.
+
+L'indexeur répartit les matchs entre **Train (70 %), Validation (15 %) et Test (15 %)**. Le vérificateur de fuite forme des clés `match_id:player_id` puis contrôle que leurs ensembles sont disjoints entre les trois partitions. Le seuil du classifieur est sélectionné sur la validation ; le jeu de test reste réservé à l'évaluation finale. Avec l'anonymisation CS2CD, `player_id` désigne l'identifiant disponible dans le match ; cette vérification ne prétend pas relier une même personne anonymisée entre plusieurs matchs.
+
+## Modèles et interprétation des scores
+
+Le dépôt distingue deux modèles :
+
+- **`cerveau_vac_custom.pkl`** : modèle physique synthétique de référence, entraîné sur des profils générés selon des plages biomécaniques définies par le projet. Il sert de baseline et n'est pas un modèle entraîné sur les matchs CS2CD.
+- **`cerveau_vac_cs2cd.pkl`** : modèle entraîné sur les données CS2CD étiquetées. Son bundle comprend le classifieur et le scaler, ainsi que les métadonnées d'entraînement, les informations de split et les métriques conservées lors de l'entraînement.
+
+Le classifieur de l'application conserve le modèle synthétique comme modèle de référence par défaut. Un modèle CS2CD peut être sélectionné explicitement (`model_type="cs2cd"` ou chemin de modèle) et doit alors être disponible et valide : le pipeline ne le remplace pas silencieusement par le modèle synthétique.
+
+Le champ `suspicion_score` est un **score combiné d'anomalie comportementale** : il agrège la sortie du modèle et les signaux/anomalies biomécaniques. Ce n'est **ni une probabilité calibrée que la personne triche, ni une certitude mathématique**. Un score, une étiquette `SUSPECT` ou une **suspicion élevée** doit toujours être confronté aux séquences du replay et à d'autres éléments.
+
+La terminologie des résultats vise la prudence : **anomalie biomécanique**, **suspicion élevée** et **INFO-ESP** décrivent les signaux détectés, sans attribuer à eux seuls une intention ou une culpabilité. Un alignement sur une cible non visible n'est pas, à lui seul, la preuve d'un wallhack.
+
+## Installation et utilisation
+
+### Pour les joueurs
+
+1. Ouvrez la page des [dernières Releases](https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases).
+2. Téléchargez le paquet Windows (`.exe` ou `.zip`) ou Linux (`.zip` ou `.tar.gz`) disponible.
+3. Lancez l'application et sélectionnez une démo `.dem` locale ou importez un replay Faceit.
+
+### Pour les développeurs
+
+**Prérequis :** Python 3.9 ou supérieur. Sous Linux, installez également Tkinter pour votre version de Python si nécessaire.
+
 ```bash
-git clone https://github.com/VOTRE_USERNAME/cs2-anticheat.git
-cd cs2-anticheat
-pip install -r requirements.txt
+git clone https://github.com/maelmeriguet4-glitch/CS2-Spectator.git
+cd CS2-Spectator
+python -m pip install -r requirements.txt
 python main.py
 ```
 
-### Build Standalone .exe (optionnel)
-```bash
-python build_exe.py
-# Output -> dist/CS2AntiCheat/CS2AntiCheat.exe  (windowed, no console)
-# Alternative: pyinstaller CS2AntiCheat.spec
-```
+## Indexation et entraînement CS2CD
 
----
+Le dataset brut n'est pas distribué avec le dépôt. Obtenez-le séparément et placez les fichiers dans les dossiers `with_cheater_present` et `no_cheater_present`, avec les paires de fichiers Parquet et JSON attendues.
 
-## 🚀 Usage / Utilisation
-
-1. **Launch** `python main.py` or `dist/CS2AntiCheat/CS2AntiCheat.exe`.
-2. **Select a demo** from auto-detected list or click "Parcourir..." / "Browse".
-3. **Wait for analysis** — progress bar + `PROGRESS` queue shows 0→100%.
-4. **Review results** — players sorted by suspicion (cheaters first).
-5. **Report** a suspect via "Générer Signalement" — pick QCM options, copy Steam/Faceit report.
-
----
-
-## 🏗️ Project Structure
-
-```
-cs2_anticheat/
-├── main.py
-├── requirements.txt
-├── build_exe.py / CS2AntiCheat.spec
-├── cerveau_vac_custom.pkl  (RF 200 trees, 15 features)
-├── src/
-│   ├── core/  parser.py  scanner.py  watcher.py  engine.py  reporter.py  models.py
-│   ├── analyzers/  aimbot.py  bhop.py  wallhack.py
-│   ├── ml/  classifier.py
-│   └── ui/  app.py  theme.py  components/{header,player_card,replays_panel,report_modal}.py
-├── tests/  unit/  e2e/ (4 tiers)
-└── demos/  test.dem (+ pro*.dem)
-```
-
----
-
-## ⚖️ Legality / Légalité
-
-100% legal — No injection, no memory read, no overlay. Only parses official `.dem` files via `demoparser2`.
-100% légal — Aucune injection, lecture mémoire ou hook. Analyse uniquement les replays officiels.
-
----
-
-## 📄 License / Licence
-
-MIT — See LICENSE file.
-
----
-
-## 🌐 Documentation / Bilingual Guide
-
-### Français
-- **Installation** : `pip install -r requirements.txt` puis `python main.py`
-- **Utilisation** : Sélectionnez une démo dans `D:\SteamLibrary\...` ou parcourez un `.dem` externe, lancez l'analyse, consultez les 10 cartes joueurs et générez un signalement via QCM.
-
-### English
-- **Overview** : Tactical CustomTkinter dashboard with hybrid Steam replay discovery, biomechanical telemetry (Aimbot/Bhop/Wallhack) and ML classification.
-- **Prerequisites** : Python 3.10+, CS2 installed, 2GB RAM, Windows 10/11.
-- **Installation & Usage** : see French section above.
-
-### Requirements Coverage
-- **R1** Hybrid CS2 Demo Detection & Replay Management (Scanner + Watcher)
-- **R2** High-Precision Biomechanical Engine (Aimbot/Bhop/Wallhack + ML)
-- **R3** Modern Tactical GUI & Rich Player Cards
-- **R4** Steam & Faceit Reporting Wizard (QCM + Telemetry Proof)
-- **R5** Standalone Packaging (build_exe.py + CS2AntiCheat.spec)
-
-Key files: `main.py` (entry point with CLI), `build_exe.py` (PyInstaller `--noconsole`), `requirements.txt` (all deps).
-
----
-
-## 🧪 Tests
+Depuis la racine du dépôt, sur Windows :
 
 ```powershell
-python -m unittest discover -s tests -v
-python -m unittest tests.unit.test_ml tests.unit.test_scanner tests.unit.test_watcher tests.unit.test_ui -v
-python tests/e2e/run_all_e2e.py
+python scripts/index_cs2cd.py --dataset-root "CHEMIN\VERS\CS2CD" --sample-size 50
+python scripts/train_cs2cd.py --manifest data/anti_cheat_dataset.csv
 ```
+
+L'indexation produit le manifeste local `data/anti_cheat_dataset.csv` et l'exemple public `data/anti_cheat_dataset.example.csv`. L'entraînement extrait les caractéristiques, exclut les étiquettes `unknown`, vérifie l'étanchéité des splits, ajuste le seuil sur Validation, puis évalue le modèle sur Test.
+
+N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins locaux, le cache de caractéristiques ou d'autres données privées.
+
+## Tests
+
+La suite comprend **108 tests unitaires** ; sur la vérification actuelle, **106 réussissent et 2 sont ignorés**. Pour la relancer :
+
+```bash
+python -m pytest tests/unit/
+```
+
+## Confidentialité et limites
+
+- L'application analyse les fichiers de replay ; elle ne lit pas la mémoire du jeu et ne modifie pas Counter-Strike 2.
+- CS2 Spectator n'est pas un cheat et ne remplace ni VAC, ni la modération de Valve ou de Faceit.
+- Une analyse automatique peut générer de faux positifs ou manquer des comportements. Ne signalez pas un joueur sur la base du seul score ou d'une seule détection.
+- L'import Faceit communique avec l'API Faceit et requiert une clé API valide. Ne publiez jamais cette clé.
+
+## Signaler un problème et contribuer
+
+Un bug ou une difficulté d'installation ? [Ouvrez un signalement](https://github.com/maelmeriguet4-glitch/CS2-Spectator/issues/new?template=bug_report.yml). Le formulaire demande les étapes de reproduction, la version et le système utilisé. N'y joignez ni clé API, ni données personnelles, ni démo privée.
+
+Les contributions sont les bienvenues : ouvrez d'abord une issue pour discuter d'une évolution importante, puis proposez une pull request concise accompagnée des tests pertinents.
+
+## Licence
+
+CS2 Spectator est distribué sous licence [MIT](LICENSE).

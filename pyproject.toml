@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cs2-anticheat"
-version = "2.0.0"
-description = "CS2 Anti-Cheat Dashboard"
+version = "2.4.0"
+description = "Analyse biomécanique et machine learning des replays Counter-Strike 2."
 authors = [
     {name = "CS2 AC Team"}
 ]
