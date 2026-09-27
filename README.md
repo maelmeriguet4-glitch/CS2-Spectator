@@ -10,7 +10,7 @@
   <p>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
     <img src="https://img.shields.io/badge/Licence-MIT-2ea44f" alt="Licence MIT">
-    <img src="https://img.shields.io/badge/Version-2.0.0-blue" alt="Version 2.0.0">
+    <img src="https://img.shields.io/badge/Version-2.4.0-blue" alt="Version 2.4.0">
     <img src="https://img.shields.io/badge/Plateformes-Windows%20%7C%20Linux-informational" alt="Windows et Linux">
   </p>
 
@@ -23,9 +23,11 @@
 
 - [🎯 À propos](#-à-propos)
 - [✨ Fonctionnalités](#-fonctionnalités)
+- [🆕 Nouveautés de la version 2.4.0](#-nouveautés-de-la-version-240)
 - [🚀 Installation et utilisation](#-installation-et-utilisation)
   - [Pour les joueurs](#-pour-les-joueurs--installation-simple)
   - [Pour les développeurs](#-pour-les-développeurs--depuis-les-sources)
+- [🧪 Outils de développement CS2CD](#-outils-de-développement-cs2cd)
 - [🧭 Parcours d'analyse](#-parcours-danalyse)
 - [🐛 Signaler un problème](#-signaler-un-problème)
 - [🛡️ Confidentialité et limites](#️-confidentialité-et-limites)
@@ -41,13 +43,24 @@ L'analyse biomécanique et les modèles de machine learning signalent des motifs
 
 ## ✨ Fonctionnalités
 
-- **Analyse biomécanique et machine learning** — recherche de snaps et à-coups de visée associés aux aimbots, d'alignements prolongés sur des adversaires masqués (wallhack/ESP), de réactions anormalement rapides (triggerbot), de mouvements de type spinbot et d'enchaînements de bunnyhop inhabituels.
+- **Analyse biomécanique et machine learning** — recherche de snaps et à-coups de visée, réactions anormalement rapides, mouvements de type spinbot et enchaînements de bunnyhop inhabituels. Les indicateurs d'alignement sur des adversaires non visibles sont des signaux d'information, pas la preuve d'un wallhack.
 - **Interface graphique sombre** — tableau de bord construit avec CustomTkinter, cartes de joueurs, progression de l'analyse, sélection des démos et filtres d'équipe.
 - **Gestion des replays** — détection des démos CS2 locales, sélection manuelle de fichiers `.dem`, surveillance du dossier de replays et analyse par lots.
-- **Import Faceit** — consultation de matchs et téléchargement/extraction de démos depuis Faceit via l'API. Une clé API Faceit est nécessaire.
+- **Import Faceit** — consultation de matchs et téléchargement/extraction de démos depuis Faceit via l'API, avec téléchargement par blocs, délais réseau et limite d'extraction de 500 Mo. Une clé API Faceit est nécessaire.
 - **Aide au signalement** — rapports textuels structurés pour Steam et Faceit, avec métriques et événements de replay pertinents. **L'export PDF n'est pas encore disponible.**
+- **Modèle CS2CD** — classification par modèle pré-entraîné distribué avec l'application, enrichie par l'intégration du dataset CS2CD.
+- **Analyse plus légère** — réduction de la mémoire utilisée par les traitements de démos et réutilisation du modèle chargé pendant l'analyse.
 
 > Les détections sont des indicateurs statistiques, pas des verdicts ni une preuve infaillible. Une anomalie peut avoir une explication légitime.
+
+## 🆕 Nouveautés de la version 2.4.0
+
+- Nouveau modèle pré-entraîné `cerveau_vac_cs2cd.pkl`, utilisé par défaut.
+- Adaptateur CS2CD pour lire les données Parquet et les événements JSON, plus deux scripts facultatifs pour indexer un dataset local et entraîner un modèle.
+- Mise à jour de plusieurs composants d'analyse, du cache, du traitement par lots et de l'import Faceit.
+- Modèle et code applicatif inclus dans les paquets Windows et Linux de la Release.
+
+Les données brutes CS2CD ne sont pas fournies dans le dépôt. Les outils d'indexation et d'entraînement sont destinés aux développeurs disposant légalement de ce dataset.
 
 ## 🚀 Installation et utilisation
 
@@ -72,6 +85,17 @@ python main.py
 ```
 
 Sous Linux, vérifiez que Tkinter est installé pour votre version de Python si l'interface ne démarre pas.
+
+### 🧪 Outils de développement CS2CD
+
+Le modèle pré-entraîné est inclus dans l'application ; le dataset brut est requis uniquement pour réindexer les matchs ou entraîner un nouveau modèle. Les fichiers sources du dataset doivent être organisés en dossiers `with_cheater_present` et `no_cheater_present`, contenant des paires `.parquet` et `.json`.
+
+```bash
+python scripts/index_cs2cd.py --dataset-root chemin/vers/CS2CD
+python scripts/train_cs2cd.py --manifest data/anti_cheat_dataset.csv
+```
+
+L'indexeur génère `data/anti_cheat_dataset.csv`. L'entraînement réutilise par défaut l'extraction de caractéristiques en cache, compare au modèle synthétique existant et écrit le nouveau modèle dans `cerveau_vac_cs2cd.pkl`. Les options `--output` de l'indexeur et `--features-cache`, `--model-output` ou `--baseline-model` de l'entraîneur permettent de personnaliser les chemins. Les chemins des fichiers restent locaux et ne doivent pas être publiés avec le manifeste.
 
 ## 🧭 Parcours d'analyse
 

@@ -1,3 +1,4 @@
+import argparse
 import os
 import pandas as pd
 import numpy as np
@@ -18,18 +19,21 @@ try:
 except ImportError:
     def analyser_bhop(demo, p): return {}
 
-from src.ml.classifier import extraire_vecteur_features, FICHIER_MODELE
+from src.ml.classifier import extraire_vecteur_features
 
-MANIFEST = r"data\anti_cheat_dataset.csv"
-NEW_MODEL_FILE = r"cerveau_vac_cs2cd.pkl"
-FEATURES_CACHE = r"data\features_cache.csv"
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MANIFEST = os.path.join(REPO_ROOT, "data", "anti_cheat_dataset.csv")
+NEW_MODEL_FILE = os.path.join(REPO_ROOT, "cerveau_vac_cs2cd.pkl")
+FEATURES_CACHE = os.path.join(REPO_ROOT, "data", "features_cache.csv")
+BASELINE_MODEL = os.path.join(REPO_ROOT, "cerveau_vac_custom.pkl")
 
-def extract_all_features():
-    df = pd.read_csv(MANIFEST)
+
+def extract_all_features(manifest=MANIFEST, features_cache=FEATURES_CACHE):
+    df = pd.read_csv(manifest)
     
-    if os.path.exists(FEATURES_CACHE):
-        print(f"Loading cached features from {FEATURES_CACHE}...")
-        return pd.read_csv(FEATURES_CACHE)
+    if os.path.exists(features_cache):
+        print(f"Loading cached features from {features_cache}...")
+        return pd.read_csv(features_cache)
 
     print("Extracting features from raw dataset. This may take a while...")
     records = []
@@ -65,7 +69,10 @@ def extract_all_features():
             traceback.print_exc()
             
     features_df = pd.DataFrame(records)
-    features_df.to_csv(FEATURES_CACHE, index=False)
+    if features_df.empty:
+        raise ValueError("No player features were extracted from the manifest.")
+    os.makedirs(os.path.dirname(os.path.abspath(features_cache)), exist_ok=True)
+    features_df.to_csv(features_cache, index=False)
     return features_df
 
 def evaluate_model(model_name, y_true, y_pred, y_prob):
@@ -79,17 +86,33 @@ def evaluate_model(model_name, y_true, y_pred, y_prob):
     else:
         print("ROC-AUC: Not defined (only one class in test set)")
 
-def main():
-    if not os.path.exists(MANIFEST):
-        print(f"Manifest {MANIFEST} not found. Please run index_cs2cd.py first.")
-        return
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Train and evaluate the CS2CD classification model.")
+    parser.add_argument("--manifest", default=MANIFEST, help="CS2CD manifest CSV.")
+    parser.add_argument("--features-cache", default=FEATURES_CACHE, help="Cached extracted feature CSV.")
+    parser.add_argument("--model-output", default=NEW_MODEL_FILE, help="Path for the trained model bundle.")
+    parser.add_argument(
+        "--baseline-model",
+        default=BASELINE_MODEL,
+        help="Existing model to compare against (never overwritten by this script).",
+    )
+    args = parser.parse_args(argv)
+
+    if not os.path.exists(args.manifest):
+        raise FileNotFoundError(
+            f"Manifest not found: {args.manifest}. Run scripts/index_cs2cd.py first."
+        )
         
-    df = extract_all_features()
+    df = extract_all_features(args.manifest, args.features_cache)
+    if "split" not in df.columns or "label" not in df.columns:
+        raise ValueError("Feature data must contain 'split' and 'label' columns.")
     
     train_df = df[df['split'] == 'train']
     test_df = df[df['split'] == 'test']
     
     feature_cols = [c for c in df.columns if c.startswith("f_")]
+    if train_df.empty or test_df.empty or not feature_cols:
+        raise ValueError("The manifest must produce train and test examples with extracted features.")
     
     X_train = train_df[feature_cols].values
     y_train = train_df['label'].values
@@ -110,16 +133,18 @@ def main():
     rf_cs2cd = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
     rf_cs2cd.fit(X_train_scaled, y_train)
     
-    joblib.dump({"scaler": scaler_cs2cd, "modele": rf_cs2cd}, NEW_MODEL_FILE)
+    model_output = os.path.abspath(args.model_output)
+    os.makedirs(os.path.dirname(model_output), exist_ok=True)
+    joblib.dump({"scaler": scaler_cs2cd, "modele": rf_cs2cd}, model_output)
     
     preds_B = rf_cs2cd.predict(X_test_scaled_B)
     probs_B = rf_cs2cd.predict_proba(X_test_scaled_B)[:, 1]
     
     # 2. Evaluate current synthetic model (Model A)
     print("\nLoading Model A (Synthetic Data)...")
-    if os.path.exists(FICHIER_MODELE):
+    if os.path.exists(args.baseline_model):
         try:
-            paquet = joblib.load(FICHIER_MODELE)
+            paquet = joblib.load(args.baseline_model)
             scaler_synth = paquet['scaler']
             rf_synth = paquet['modele']
             
@@ -129,9 +154,9 @@ def main():
             
             evaluate_model("Model A (Synthetic Data)", y_test, preds_A, probs_A)
         except Exception as e:
-            print(f"Could not evaluate Model A: {e}")
+            print(f"Could not evaluate baseline model {args.baseline_model}: {e}")
     else:
-        print("Model A not found.")
+        print(f"Baseline model not found: {args.baseline_model}")
         
     evaluate_model("Model B (Real CS2CD Data)", y_test, preds_B, probs_B)
     
@@ -143,7 +168,7 @@ def main():
     print(f"2. Total Players extracted: {len(df)}")
     print(f"3. Train/Val/Test Split: {len(train_df)} / {len(df[df['split']=='validation'])} / {len(test_df)}")
     print(f"4. Features used: {len(feature_cols)} (Aim, Wallhack, Bhop)")
-    print(f"5. New model saved as: {NEW_MODEL_FILE}")
+    print(f"5. New model saved as: {model_output}")
     print("6. To train on more matches, modify 'sample_size' in scripts/index_cs2cd.py and delete data/features_cache.csv")
     print("="*50)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cs2-anticheat"
-version = "2.0.0"
+version = "2.4.0"
 description = "CS2 Anti-Cheat Dashboard"
 authors = [
     {name = "CS2 AC Team"}
@@ -21,7 +21,8 @@ dependencies = [
     "pillow>=10.0.0",
     "darkdetect>=0.8.0",
     "pyarrow>=14.0.0",
-    "pyinstaller>=6.0.0"
+    "pyinstaller>=6.0.0",
+    "reportlab>=4.0.0"
 ]
 readme = "README.md"
 requires-python = ">=3.9"

@@ -38,11 +38,11 @@ jobs:
         run: >-
           python -m PyInstaller --noconfirm --clean --onefile --windowed
           --name CS2-Spectator
-          --collect-all customtkinter --collect-all demoparser2
+          --collect-all customtkinter --collect-all demoparser2 --collect-all pyarrow
           --hidden-import watchdog --hidden-import pyperclip --hidden-import sklearn
           --hidden-import joblib --hidden-import pandas --hidden-import numpy
           --hidden-import PIL --hidden-import darkdetect
-          --add-data "cerveau_vac_custom.pkl;."
+          --add-data "cerveau_vac_cs2cd.pkl;."
           --add-data "src;src"
           main.py
 
@@ -56,11 +56,11 @@ jobs:
         run: >-
           python -m PyInstaller --noconfirm --clean --onefile --windowed
           --name CS2-Spectator
-          --collect-all customtkinter --collect-all demoparser2
+          --collect-all customtkinter --collect-all demoparser2 --collect-all pyarrow
           --hidden-import watchdog --hidden-import pyperclip --hidden-import sklearn
           --hidden-import joblib --hidden-import pandas --hidden-import numpy
           --hidden-import PIL --hidden-import darkdetect
-          --add-data "cerveau_vac_custom.pkl:."
+          --add-data "cerveau_vac_cs2cd.pkl:."
           --add-data "src:src"
           main.py
 

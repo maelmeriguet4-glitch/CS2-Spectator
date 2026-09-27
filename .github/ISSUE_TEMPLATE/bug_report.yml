@@ -38,8 +38,8 @@ body:
     id: version
     attributes:
       label: Version de CS2 Spectator
-      description: Indiquez la version utilisée (par exemple v2.0.0).
-      placeholder: v2.0.0
+      description: Indiquez la version utilisée (par exemple v2.4.0).
+      placeholder: v2.4.0
     validations:
       required: true
   - type: input

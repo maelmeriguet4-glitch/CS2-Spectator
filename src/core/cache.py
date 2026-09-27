@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from src.core.config import get_config
 from src.core.models import MatchAnalysisResult
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,8 @@ def get_demo_hash(demo_path: str) -> Optional[str]:
     
     stat = os.stat(demo_path)
     h = hashlib.md5()
-    # Add engine schema version and absolute path to avoid stale caches and collisions
-    h.update(b"v2.0.0") 
+    # Invalidate results whenever analyzer or model behavior changes.
+    h.update(get_config().engine_version.encode("utf-8"))
     h.update(os.path.abspath(demo_path).encode('utf-8'))
     h.update(str(stat.st_size).encode('utf-8'))
     

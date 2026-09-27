@@ -22,6 +22,14 @@ demos/*.dem.info
 data/
 *.pkl.bak
 
+# Generated diagnostics, reports, and local ML models
+reports/
+rapport-audit.pdf
+audit.json
+mypy_errors.txt
+ruff_errors.json
+ruff_errors_filtered.json
+
 # Generated audit output
 reports/
 rapport-audit.pdf

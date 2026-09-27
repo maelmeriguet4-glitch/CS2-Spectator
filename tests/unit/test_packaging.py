@@ -78,6 +78,7 @@ class TestPackagingUnit(unittest.TestCase):
         self.assertIn("--onedir", args)
         self.assertIn("--collect-all=customtkinter", args)
         self.assertIn("--collect-all=demoparser2", args)
+        self.assertIn("--collect-all=pyarrow", args)
         self.assertIn("cerveau_vac_custom.pkl", args_str)
 
         # Check required hidden imports
@@ -89,12 +90,14 @@ class TestPackagingUnit(unittest.TestCase):
         args = build_exe.get_pyinstaller_args(onefile=True)
         self.assertIn("--onefile", args)
         self.assertNotIn("--onedir", args)
+        self.assertIn("cerveau_vac_cs2cd.pkl", " ".join(args))
+        self.assertIn("--collect-all=pyarrow", args)
 
     def test_build_exe_environment_verification(self):
         """Verify build_exe.verify_build_environment checks pass on current environment."""
         checks = build_exe.verify_build_environment()
         self.assertTrue(checks["target_exists"], "main.py must exist")
-        self.assertTrue(checks["model_exists"], "cerveau_vac_custom.pkl must exist")
+        self.assertTrue(checks["model_exists"], "cerveau_vac_cs2cd.pkl must exist")
         self.assertTrue(checks["pyinstaller_installed"], "PyInstaller must be installed")
         self.assertTrue(checks["all_passed"], "All environment checks must pass")
 
@@ -168,6 +171,7 @@ class TestPackagingUnit(unittest.TestCase):
             self.assertIn(reference, content, f"Reference '{reference}' must be documented in README.md")
 
         self.assertTrue(os.path.isfile(os.path.join(REPO_ROOT, "logo.png")))
+        self.assertTrue(os.path.isfile(os.path.join(REPO_ROOT, "cerveau_vac_cs2cd.pkl")))
         self.assertTrue(os.path.isfile(os.path.join(REPO_ROOT, ".github", "workflows", "release.yml")))
 
 

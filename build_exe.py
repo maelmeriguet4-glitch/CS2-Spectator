@@ -22,6 +22,7 @@ def get_pyinstaller_args(target_script="main.py", app_name="CS2AntiCheat", model
         "--name", app_name,
         "--collect-all=customtkinter",
         "--collect-all=demoparser2",
+        "--collect-all=pyarrow",
     ])
     # hidden imports
     for hi in ["watchdog", "pyperclip", "sklearn", "joblib", "pandas", "numpy", "PIL", "darkdetect"]:
