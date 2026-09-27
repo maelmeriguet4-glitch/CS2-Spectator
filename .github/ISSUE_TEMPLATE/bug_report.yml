@@ -1,0 +1,59 @@
+name: Signaler un bug
+description: Décrire un problème rencontré dans CS2 Spectator
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce problème. N'incluez pas de clé API, de données personnelles ni de replay privé.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du problème
+      description: Que s'est-il passé ?
+      placeholder: Décrivez le problème rencontré.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes pour reproduire le problème
+      description: Quelles actions permettent de reproduire le problème ?
+      placeholder: |
+        1. Ouvrir...
+        2. Sélectionner...
+        3. Constater...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+      description: Qu'auriez-vous dû voir à la place ?
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version de CS2 Spectator
+      description: Indiquez la version utilisée (par exemple v2.0.0).
+      placeholder: v2.0.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Système d'exploitation
+      placeholder: Windows 11 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Message d'erreur ou journaux pertinents
+      description: Supprimez toute clé, donnée personnelle ou information sensible avant de partager.
+      render: text
+    validations:
+      required: false

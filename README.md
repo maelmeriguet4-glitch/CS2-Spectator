@@ -27,6 +27,7 @@
   - [Pour les joueurs](#-pour-les-joueurs--installation-simple)
   - [Pour les développeurs](#-pour-les-développeurs--depuis-les-sources)
 - [🧭 Parcours d'analyse](#-parcours-danalyse)
+- [🐛 Signaler un problème](#-signaler-un-problème)
 - [🛡️ Confidentialité et limites](#️-confidentialité-et-limites)
 - [🗺️ Feuille de route](#️-feuille-de-route)
 - [🤝 Contribuer](#-contribuer)
@@ -78,6 +79,10 @@ Sous Linux, vérifiez que Tkinter est installé pour votre version de Python si 
 2. **Lancez l'analyse** et laissez le traitement se terminer.
 3. **Examinez les résultats** par joueur : score de suspicion, signaux détectés et métriques de replay.
 4. **Vérifiez les séquences dans leur contexte**, puis, si cela vous semble justifié, préparez un signalement à partir des informations observées.
+
+## 🐛 Signaler un problème
+
+Vous avez rencontré un bug ou quelque chose ne fonctionne pas comme prévu ? [Ouvrez un signalement](https://github.com/maelmeriguet4-glitch/CS2-Spectator/issues/new?template=bug_report.yml) : le formulaire vous guidera pour décrire le problème et les étapes permettant de le reproduire. Merci de ne pas joindre de clé API, de données personnelles ni de démo contenant des informations privées.
 
 ## 🛡️ Confidentialité et limites
 
