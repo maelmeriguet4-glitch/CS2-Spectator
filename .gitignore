@@ -16,10 +16,15 @@ venv/
 *.egg-info/
 
 # Models / Demos (large binaries)
-# Keep small model cerveau_vac_custom.pkl but ignore large demos
 demos/*.dem
 demos/*.dem.info
-data/
+data/*
+!data/anti_cheat_dataset.example.csv
+*.parquet
+*.csv.gz
+*.dem
+*.zip
+features_cache.csv
 *.pkl.bak
 
 # Agents / temp

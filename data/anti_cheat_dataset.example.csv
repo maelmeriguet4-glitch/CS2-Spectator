@@ -1,0 +1,3 @@
+match_id,match_category,data_path,metadata_path,label,label_confidence,label_source,cheaters,num_cheaters,usable_for_training,split
+no_cheater_present_2,no_cheater_present,data/raw_examples/no_cheater_present_2.parquet,data/raw_examples/no_cheater_present_2.json,no_cheater_present,medium,cs2cd_unverified_no_vac,,0,True,train
+with_cheater_present_1,with_cheater_present,data/raw_examples/with_cheater_present_1.parquet,data/raw_examples/with_cheater_present_1.json,with_cheater_present,high,cs2cd_vac_verified,Player_1,1,True,train

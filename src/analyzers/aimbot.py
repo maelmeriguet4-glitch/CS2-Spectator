@@ -270,9 +270,21 @@ def analyze_aimbot(demo_data_or_path, identifier: str) -> AimbotResult:
             "aim_jerk_max": 0.0, "aim_ratio_micro_ajustements": 0.0, "aim_variance_vitesse": 0.0,
         }
     snaps = []
-    # AUD-04 Correction: Do not fabricate incident ticks or weapons from aggregate metrics.
-    # Real per-tick events must be measured directly. Since we only have aggregates here,
-    # we return an empty list for flagged_snaps to avoid presenting synthetic data as proof.
+    # Mesure directe des snaps réels observés sur les ticks (sans fabriquer d'événements synthétiques)
+    ticks_df = _get_player_ticks(demo_data, identifier)
+    if not ticks_df.empty and 'yaw' in ticks_df.columns and 'pitch' in ticks_df.columns and len(ticks_df) > 1:
+        y_diff = np.abs((ticks_df['yaw'].diff() + 180.0) % 360.0 - 180.0)
+        p_diff = np.abs(ticks_df['pitch'].diff())
+        spd = np.sqrt(y_diff**2 + p_diff**2)
+        snap_mask = spd > 18.0
+        if snap_mask.any():
+            snap_ticks = ticks_df[snap_mask]
+            for idx_row, row in snap_ticks.iterrows():
+                snaps.append({
+                    "tick": int(row.get("tick", 0)),
+                    "degrees": round(float(spd.loc[idx_row]), 2),
+                    "weapon": str(row.get("active_weapon_name", "weapon_unknown")),
+                })
     return AimbotResult(metrics=profil, flagged_snaps=snaps)
 
 # Alias supplémentaires pour robustesse
