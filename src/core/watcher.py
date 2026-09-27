@@ -191,6 +191,7 @@ class ReplayWatcher:
             return
         with self._lock:
             if chemin in self._fichiers_en_cours:
+                # Un thread traite déjà ce fichier (debounce + notification en cours)
                 return
             self._fichiers_en_cours[chemin] = True
 
@@ -216,13 +217,14 @@ class ReplayWatcher:
                             if prev and (now - prev[2] < self._cooldown_seconds):
                                 if prev[0] == stat.st_size and prev[1] == stat.st_mtime:
                                     return
+                            # Marquer AVANT la notification pour éviter toute course
                             self._recently_notified[chemin] = (stat.st_size, stat.st_mtime, now)
                     except OSError:
                         pass
                     try:
                         if self._is_en_callback:
                             # Build ReplayInfo
-                            if ReplayInfo and ReplayScanner:
+                            if ReplayInfo is not None and ReplayScanner is not None:
                                 try:
                                     stat = os.stat(chemin)
                                     map_name, server_name = ReplayScanner.extract_replay_metadata(chemin)
@@ -250,7 +252,7 @@ class ReplayWatcher:
                                 self.callback(chemin)
                             except TypeError:
                                 # Try EN style
-                                if ReplayInfo:
+                                if ReplayInfo is not None:
                                     stat = os.stat(chemin)
                                     info = ReplayInfo(chemin, os.path.basename(chemin), stat.st_size, stat.st_mtime)
                                     self.callback(info)
@@ -258,6 +260,8 @@ class ReplayWatcher:
                             import logging
                             logging.debug(f"Ignored error: {_e}")
             finally:
+                # Libéré uniquement après la fin complète du callback pour empêcher
+                # qu'un évènement on_modified concurrent ne déclenche un doublon.
                 with self._lock:
                     self._fichiers_en_cours.pop(chemin, None)
 

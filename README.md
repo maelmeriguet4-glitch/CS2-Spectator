@@ -6,7 +6,7 @@
   <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
   <p>
-    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.0-4263EB?style=for-the-badge" alt="Version 2.5.0"></a>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.1-4263EB?style=for-the-badge" alt="Version 2.5.1"></a>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
     <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
     <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
@@ -142,6 +142,12 @@ Pour lancer séparément les tests unitaires :
 
 ```bash
 python -m pytest tests/unit/ -q
+```
+
+Pour la vérification locale de v2.5.1, la suite unitaire compte **120 tests** : **118 réussissent et 2 sont ignorés**. Les tests E2E comptent **105 tests** : **91 réussissent, 11 sont ignorés et 3 nécessitent les artefacts locaux de packaging/dataset** (dossier `dist/`, démos et manifeste CS2CD). Ces contrôles dépendants de l'environnement ne constituent pas une validation de release.
+
+```bash
+python -m pytest tests/e2e/ -q
 ```
 
 Le script de vérification est le contrôle de référence ; le nombre de tests peut évoluer avec les contributions.

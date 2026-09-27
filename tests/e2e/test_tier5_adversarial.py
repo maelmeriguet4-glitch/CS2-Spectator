@@ -145,7 +145,7 @@ class TestAdversarialAngleFlicks(unittest.TestCase):
 
         self.assertIsInstance(res, AimAnalysisResult)
         # Snap of 90° must be detected
-        self.assertGreaterEqual(res.metrics["aim_snap_max"], 80.0)
+        self.assertGreaterEqual(res.metrics["aim_p99"], 80.0)
         self.assertGreater(len(res.flagged_snaps), 0)
 
     def test_negative_pitch_and_extreme_vertical_snaps(self):
@@ -172,7 +172,7 @@ class TestAdversarialAngleFlicks(unittest.TestCase):
         res = analyze_aimbot(mock_demo, "76561198000000088")
 
         self.assertIsInstance(res, AimAnalysisResult)
-        self.assertGreaterEqual(res.metrics["aim_snap_max"], 170.0)
+        self.assertGreaterEqual(res.metrics["aim_p99"], 170.0)
         self.assertGreaterEqual(res.metrics["aim_jerk_max"], 100.0)
         self.assertGreater(len(res.flagged_snaps), 0)
 
@@ -552,7 +552,7 @@ class TestAdversarialPlayerEdgeCases(unittest.TestCase):
         mock_demo = MockAdversarialDemoData(df_afk)
 
         aim_res = analyze_aimbot(mock_demo, "76561198000000001")
-        self.assertEqual(aim_res.metrics["aim_snap_max"], 0.0)
+        self.assertEqual(aim_res.metrics["aim_p99"], 0.0)
         self.assertEqual(aim_res.metrics["aim_jerk_max"], 0.0)
 
         bhop_res = analyze_bhop(mock_demo, "76561198000000001")
@@ -585,7 +585,7 @@ class TestAdversarialPlayerEdgeCases(unittest.TestCase):
 
         aim_res = analyze_aimbot(mock_demo, "76561198000000002")
         self.assertIsInstance(aim_res, AimAnalysisResult)
-        self.assertEqual(aim_res.metrics["aim_snap_max"], 0.0)
+        self.assertEqual(aim_res.metrics["aim_p99"], 0.0)
 
         bhop_res = analyze_bhop(mock_demo, "76561198000000002")
         self.assertIsInstance(bhop_res, BhopAnalysisResult)
@@ -613,7 +613,7 @@ class TestAdversarialPlayerEdgeCases(unittest.TestCase):
         aim_res = analyze_aimbot(mock_demo, "76561198000000003")
         self.assertIsInstance(aim_res, AimAnalysisResult)
         self.assertGreater(aim_res.metrics["aim_vitesse_max"], 0.0)
-        self.assertLess(aim_res.metrics["aim_snap_max"], 2.0)
+        self.assertLess(aim_res.metrics["aim_p99"], 2.0)
 
     def test_dead_only_player(self):
         """4.4: Player who is dead (health <= 0) throughout entire demo is handled safely."""
@@ -630,7 +630,7 @@ class TestAdversarialPlayerEdgeCases(unittest.TestCase):
         mock_demo = MockAdversarialDemoData(df_dead)
 
         aim_res = analyze_aimbot(mock_demo, "76561198000000004")
-        self.assertEqual(aim_res.metrics["aim_snap_max"], 0.0)
+        self.assertEqual(aim_res.metrics["aim_p99"], 0.0)
 
         bhop_res = analyze_bhop(mock_demo, "76561198000000004")
         self.assertEqual(bhop_res.metrics["bhop_total_sauts"], 0.0)
@@ -690,7 +690,7 @@ class TestAdversarialConcurrencyStress(unittest.TestCase):
 
         def infer_task(seed: int) -> str:
             rng = np.random.RandomState(seed)
-            aim = {"aim_snap_max": float(rng.uniform(0.0, 30.0)), "aim_jerk_max": float(rng.uniform(0.0, 50.0))}
+            aim = {"aim_p99": float(rng.uniform(0.0, 30.0)), "aim_jerk_max": float(rng.uniform(0.0, 50.0))}
             bhop = {"bhop_ratio_parfaits": float(rng.uniform(0.0, 1.0)), "bhop_total_sauts": 20.0}
             wh = {"wh_ratio_lock_strict": float(rng.uniform(0.0, 0.3)), "wh_tracking_consecutif_max": 30.0}
             res = classifier.predict(aim, bhop, wh)
@@ -756,7 +756,6 @@ class TestAdversarialConcurrencyStress(unittest.TestCase):
                 results = [f.result(timeout=15.0) for f in concurrent.futures.as_completed(futures)]
 
         self.assertEqual(len(results), 6)
-        first_verdict = results[0].global_verdict
         for r in results:
             self.assertIsInstance(r, MatchAnalysisResult)
             self.assertEqual(len(r.players), 4)

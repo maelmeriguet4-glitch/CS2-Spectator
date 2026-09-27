@@ -553,7 +553,7 @@ class ReportModal(ctk.CTkToplevel):
         spin = getattr(p, "spinbot_metrics", {}) or {}
         tb = getattr(p, "triggerbot_metrics", {}) or {}
 
-        aim_snap = float(aim.get("aim_snap_max", 0.0))
+        aim_snap = float(aim.get("aim_p99", 0.0))
         aim_jerk = float(aim.get("aim_jerk_max", 0.0))
         aim_vitesse = float(aim.get("aim_vitesse_max", 0.0))
 
@@ -573,7 +573,6 @@ class ReportModal(ctk.CTkToplevel):
         spin_pitch_viol = int(spin.get("spinbot_pitch_violations", 0))
         spin_jitter = float(spin.get("spinbot_jitter_score", 0.0))
         spin_desync = int(spin.get("spinbot_desync_max_ticks", 0))
-        spin_windows = int(spin.get("spinbot_yaw_spin_windows", 0))
 
         # Triggerbot metrics
         tb_rt_med = float(tb.get("triggerbot_rt_median", 0.0))
@@ -646,7 +645,7 @@ class ReportModal(ctk.CTkToplevel):
                 "reason_clean": "Orientation de vue stable et cohérente. Modèle de joueur parfaitement synchronisé sur le serveur.",
             },
             {
-                "title": "⚡ TRIGGERBOT & RÉFLEXES INHUMAINS (SUB-TICK)",
+                "title": "⚡ TRIGGERBOT & RÉFLEXES LATENCE ALIGNEMENTS (SUB-TICK)",
                 "accent_color": THEME["cheat_trigger"],
                 "bg_color": THEME["cheat_trigger_bg"],
                 "is_cheat": ((tb_shots >= 3 and tb_rt_med < 50.0) or "TRIGGERBOT" in flags_str),

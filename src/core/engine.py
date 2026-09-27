@@ -158,8 +158,8 @@ class AntiCheatEngine:
                 combat_events.append({"type": "aim_snap", **s})
             for c in bhop_chains:
                 combat_events.append({"type": "bhop_chain", **c})
-            for l in wh_locks:
-                combat_events.append({"type": "wh_lock", **l})
+            for verrou in wh_locks:
+                combat_events.append({"type": "wh_lock", **verrou})
             for sp in spin_events:
                 combat_events.append({"type": "spinbot_event", **sp})
             for tb in tb_events:
@@ -233,10 +233,14 @@ class AntiCheatEngine:
         elif suspects:
             names_suspects = ", ".join([p.name for p in suspects[:3]])
             global_verdict = f"{len(suspects)} JOUEUR(S) SUSPECT(S) ({names_suspects})"
-        elif errors:
-            global_verdict = f"MATCH INCOMPLET ({len(errors)} ERREUR(S) D'ANALYSE)"
         else:
             global_verdict = "AUCUN SIGNAL FORT DÉTECTÉ"
+
+        if errors:
+            if cheaters or suspects:
+                global_verdict += f" [MATCH INCOMPLET: {len(errors)} ERREUR(S)]"
+            else:
+                global_verdict = f"MATCH INCOMPLET ({len(errors)} ERREUR(S) D\'ANALYSE)"
 
         _report(1.0, f"Analyse terminée avec succès. Verdict : {global_verdict}")
 

@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 import numpy as np
 import pandas as pd
 
+from src.core.config import get_config
 from src.core.parser import charger_demo
 
 
@@ -23,6 +24,7 @@ def analyser_spinbot(demo_ou_chemin, joueur_cible):
     
     Retourne un dictionnaire de métriques et les événements suspects.
     """
+    cfg = get_config()
     demo_data = charger_demo(demo_ou_chemin)
     if not demo_data.valide:
         return None
@@ -43,32 +45,33 @@ def analyser_spinbot(demo_ou_chemin, joueur_cible):
     )
     donnees['yaw_speed'] = donnees['delta_yaw'].abs()
     # Sliding window of 16 ticks for mean yaw speed
-    donnees['mean_yaw_speed_16'] = donnees['yaw_speed'].rolling(window=16, min_periods=16).mean()
+    donnees['mean_yaw_speed_16'] = donnees['yaw_speed'].rolling(window=cfg.spinbot_window_size, min_periods=cfg.spinbot_window_size).mean()
     spinbot_yaw_speed_max = float(donnees['mean_yaw_speed_16'].max())
-    if np.isnan(spinbot_yaw_speed_max): spinbot_yaw_speed_max = 0.0
-    spinbot_yaw_spin_windows = int((donnees['mean_yaw_speed_16'] > 90.0).sum())
+    if np.isnan(spinbot_yaw_speed_max):
+        spinbot_yaw_speed_max = 0.0
+    spinbot_yaw_spin_windows = int((donnees['mean_yaw_speed_16'] > cfg.spinbot_yaw_speed_threshold).sum())
 
     # 2. Invalid Pitch
     pitch_out = ((donnees['pitch'] < -89.5) | (donnees['pitch'] > 89.5)).sum()
     spinbot_pitch_violations = int(pitch_out)
 
     # 3. Jitter Anti-Aim (8 ticks)
-    donnees['pitch_var_8'] = donnees['pitch'].rolling(window=8, min_periods=8).var()
+    donnees['pitch_var_8'] = donnees['pitch'].rolling(window=cfg.spinbot_jitter_window, min_periods=cfg.spinbot_jitter_window).var()
     
     pitch_prec = donnees['pitch'].shift(1)
     donnees['delta_pitch'] = np.where(donnees['ecart_ticks'] == 1, donnees['pitch'] - pitch_prec, 0.0)
     signe_pitch = np.sign(donnees['delta_pitch'])
     donnees['changement_signe_pitch'] = (signe_pitch != signe_pitch.shift(1)) & (donnees['ecart_ticks'] == 1)
     # Rapid sign changes (sum over 8 ticks)
-    donnees['pitch_sign_changes_8'] = donnees['changement_signe_pitch'].rolling(window=8, min_periods=8).sum()
+    donnees['pitch_sign_changes_8'] = donnees['changement_signe_pitch'].rolling(window=cfg.spinbot_jitter_window, min_periods=cfg.spinbot_jitter_window).sum()
     
-    jitter_mask = (donnees['pitch_var_8'] > 2000.0) & (donnees['pitch_sign_changes_8'] >= 3)
     spinbot_jitter_score = float(donnees['pitch_var_8'].max())
-    if np.isnan(spinbot_jitter_score): spinbot_jitter_score = 0.0
+    if np.isnan(spinbot_jitter_score):
+        spinbot_jitter_score = 0.0
 
     # 4. Anti-Aim Rapid Yaw Oscillation / Jitter (True Desync)
     # Les anti-aims alternent les angles de vue de ~180° d'un tick à l'autre pour fausser le hitbox
-    yaw_flick = (donnees['delta_yaw'].abs() > 140.0) & (donnees['ecart_ticks'] == 1)
+    yaw_flick = (donnees['delta_yaw'].abs() > cfg.spinbot_desync_angle) & (donnees['ecart_ticks'] == 1)
     sign_flips = (np.sign(donnees['delta_yaw']) != np.sign(donnees['delta_yaw'].shift(1))) & yaw_flick
     desync_groups = (~sign_flips).cumsum()
     desync_streaks = sign_flips.groupby(desync_groups).sum()
@@ -132,6 +135,7 @@ def _get_player_ticks_spinbot(demo_data, identifier):
 
 
 def analyze_spinbot(demo_data_or_path, identifier: str) -> SpinbotResult:
+    cfg = get_config()
     demo_data = demo_data_or_path if hasattr(demo_data_or_path, 'ticks') else charger_demo(demo_data_or_path)
     is_valid = getattr(demo_data, 'is_valid', getattr(demo_data, 'valide', False))
     
@@ -156,7 +160,14 @@ def analyze_spinbot(demo_data_or_path, identifier: str) -> SpinbotResult:
         profil = default_metrics
 
     events = []
-    if profil.get("spinbot_yaw_spin_windows", 0) > 0 or profil.get("spinbot_pitch_violations", 0) > 0 or profil.get("spinbot_jitter_score", 0) > 2000.0 or profil.get("spinbot_desync_max_ticks", 0) > 32:
+    jitter_threshold = float(getattr(cfg, "spinbot_jitter_variance", 2000.0))
+    desync_threshold = int(getattr(cfg, "spinbot_desync_min_ticks", 6))
+    if (
+        profil.get("spinbot_yaw_spin_windows", 0) > 0
+        or profil.get("spinbot_pitch_violations", 0) > 0
+        or profil.get("spinbot_jitter_score", 0) > jitter_threshold
+        or profil.get("spinbot_desync_max_ticks", 0) >= desync_threshold
+    ):
         events.append({"type": "spinbot_detected", "metrics": profil})
 
     return SpinbotResult(metrics=profil, flagged_events=events)

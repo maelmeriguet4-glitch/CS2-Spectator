@@ -97,8 +97,9 @@ class PlayerTelemetry:
             if self.analysis_status not in {"insufficient_data", "error"}:
                 self.analysis_status = "ok"
         else:
-            self.verdict = "CLEAN"
-            self.analysis_status = "ok"
+            self.verdict = "ERROR"
+            self.analysis_status = "error"
+            self.data_quality = "insufficient"
 
     @property
     def is_valid_steamid(self) -> bool:

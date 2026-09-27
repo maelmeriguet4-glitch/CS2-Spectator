@@ -4,6 +4,9 @@ Détection de lock-on à travers les murs via géométrie 3D Source 2.
 Refactoré depuis wallhack.py.
 """
 
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
@@ -140,10 +143,6 @@ def analyser_wallhack(demo_ou_chemin, joueur_cible):
     return profil_wh
 
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List
-
-
 @dataclass
 class WallhackResult:
     metrics: Dict[str, float] = field(default_factory=dict)
@@ -226,7 +225,7 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
                 return WallhackResult(metrics={"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}, flagged_locks=[])
             
             # Filter non visible (spotted == False)
-            occluded = merged[merged['spotted_e'] == False].copy()
+            occluded = merged[~merged['spotted_e'].astype(bool)].copy()
             if occluded.empty:
                 return WallhackResult(metrics={"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}, flagged_locks=[])
             
@@ -252,19 +251,20 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
             total = len(user_ticks)
             ratio_strict = len(locks_strict) / max(total, 1)
             ratio_large = len(locks_large) / max(total, 1)
-            # tracking consecutive
+            # tracking consecutive per target_id
             tracking = 0
             if not locks_strict.empty:
-                # sort by tick
-                ls = locks_strict.sort_values('tick')
-                cnt = 1
-                max_cnt = 1
-                for i in range(1, len(ls)):
-                    if ls.iloc[i]['tick'] - ls.iloc[i-1]['tick'] == 1:
-                        cnt += 1
-                        max_cnt = max(max_cnt, cnt)
-                    else:
-                        cnt = 1
+                max_cnt = 0
+                for target_id, group in locks_strict.groupby('steamid'):
+                    ls = group.sort_values('tick')
+                    cnt = 1
+                    for i in range(1, len(ls)):
+                        if ls.iloc[i]['tick'] - ls.iloc[i-1]['tick'] == 1:
+                            cnt += 1
+                        else:
+                            max_cnt = max(max_cnt, cnt)
+                            cnt = 1
+                    max_cnt = max(max_cnt, cnt)
                 tracking = max_cnt
             dist_moy = float(locks_large['dist'].mean()) if not locks_large.empty else 0.0
             metrics = {
@@ -291,7 +291,8 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
                 })
             return WallhackResult(metrics=metrics, flagged_locks=locks)
         except Exception:
-            import traceback; traceback.print_exc()
+            import traceback
+            traceback.print_exc()
     # Fallback FR
     name = _resolve_name_wh(demo_data, identifier) if is_valid else identifier
     if not hasattr(demo_data, 'valide'):

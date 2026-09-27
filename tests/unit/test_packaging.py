@@ -161,7 +161,7 @@ class TestPackagingUnit(unittest.TestCase):
             "scripts/train_cs2cd.py",
             "scripts/verify_release_ready.py",
             "python -m pytest tests/unit/ -q",
-            "2.5.0",
+            "2.5.1",
             "Signaler un problème",
         ]
         for item in required_content:

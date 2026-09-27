@@ -59,7 +59,7 @@ class ReferenceReportGenerator:
     def generate_steam_report(player: PlayerTelemetry, qcm_options: List[str], comments: str) -> str:
         qcm_bullets = "\n".join(f"  • {opt}" for opt in qcm_options) if qcm_options else "  • Aucune observation manuelle"
         flag_bullets = "\n".join(f"  • {f}" for f in player.violation_flags) if player.violation_flags else "  • Aucun facteur suspect détecté"
-        aim_snap = player.aim_metrics.get("aim_snap_max", 0.0)
+        aim_snap = player.aim_metrics.get("aim_p99", 0.0)
         aim_jerk = player.aim_metrics.get("aim_jerk_max", 0.0)
         bhop_pct = player.bhop_metrics.get("bhop_ratio_parfaits", 0.0) * 100.0
         wh_strict = player.wh_metrics.get("wh_ratio_lock_strict", 0.0) * 100.0
@@ -85,7 +85,7 @@ class ReferenceReportGenerator:
     @staticmethod
     def generate_faceit_report(player: PlayerTelemetry, qcm_options: List[str], comments: str) -> str:
         qcm_bullets = "\n".join(f"- {opt}" for opt in qcm_options) if qcm_options else "- None"
-        aim_snap = player.aim_metrics.get("aim_snap_max", 0.0)
+        aim_snap = player.aim_metrics.get("aim_p99", 0.0)
         bhop_pct = player.bhop_metrics.get("bhop_ratio_parfaits", 0.0) * 100.0
         wh_strict = player.wh_metrics.get("wh_ratio_lock_strict", 0.0) * 100.0
 
@@ -122,7 +122,6 @@ class TestTier3CrossFeatureInteractions(unittest.TestCase):
         # Step 1: Scanner finds CS2 replay catalog
         replays = ReplayScanner.list_replays()
         self.assertGreater(len(replays), 0, "Scanner must catalog replays")
-        target_demo = replays[0].file_path
 
         # Step 2: Watcher simulates detection in temp folder
         with tempfile.TemporaryDirectory() as watch_dir:
@@ -147,7 +146,7 @@ class TestTier3CrossFeatureInteractions(unittest.TestCase):
             watcher.start()
 
             # Create a synthetic demo in the watched folder
-            created_path = create_synthetic_demo_file(
+            create_synthetic_demo_file(
                 watch_dir,
                 filename="match730_live_test.dem",
                 header=SOURCE2_MAGIC_HEADER,
@@ -180,14 +179,13 @@ class TestTier3CrossFeatureInteractions(unittest.TestCase):
         # 2. Pick first player
         first_player = demo_data.players_info[0]
         identifier = first_player["steamid"]
-        player_name = first_player["name"]
 
         # 3. Execute all 3 kinematic analyzers
         aim_res = analyze_aimbot(demo_data, identifier)
         bhop_res = analyze_bhop(demo_data, identifier)
         wh_res = analyze_wallhack(demo_data, identifier)
 
-        self.assertIn("aim_snap_max", aim_res.metrics)
+        self.assertIn("aim_p99", aim_res.metrics)
         self.assertIn("bhop_ratio_parfaits", bhop_res.metrics)
         self.assertIn("wh_ratio_lock_strict", wh_res.metrics)
 
@@ -218,7 +216,7 @@ class TestTier3CrossFeatureInteractions(unittest.TestCase):
 
         qcm_selections = [
             "Visée anormale à travers les fumigènes / murs (Pre-aiming & Wallhack)",
-            "Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)",
+            "Snaps instantanés et verrouillage de tête latence alignement (Aimbot / Silent Aim)",
         ]
         notes = "Spectated in Round 8 — impossible snap through smoke on Mirage A ramp."
 

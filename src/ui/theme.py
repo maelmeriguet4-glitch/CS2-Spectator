@@ -209,7 +209,7 @@ def get_status_colors(verdict: str, suspicion_score: float = 0.0) -> Dict[str, s
         return {
             "badge_bg": THEME["clean_green_bg"],
             "badge_text": THEME["clean_green_text"],
-            "status_text": "🟢 100% LÉGITIME",
+            "status_text": "🟢 NON DÉTECTÉ",
             "status_short": "CLEAN",
             "progress_color": THEME["clean_green"],
             "border_color": THEME["clean_border"],
@@ -229,7 +229,7 @@ def generate_player_verdict_summary(player: Any) -> str:
 
     if verdict == "CHEATER":
         reasons = []
-        snap = float(aim.get("aim_snap_max", 0.0))
+        snap = float(aim.get("aim_p99", 0.0))
         if snap > 25.0:
             reasons.append(f"Snap robotique violent de {snap:.1f}°/tick")
         wh_ratio = float(wh.get("wh_ratio_lock_strict", 0.0)) * 100
@@ -244,7 +244,7 @@ def generate_player_verdict_summary(player: Any) -> str:
 
     elif verdict == "SUSPECT":
         reasons = []
-        snap = float(aim.get("aim_snap_max", 0.0))
+        snap = float(aim.get("aim_p99", 0.0))
         if snap > 15.0:
             reasons.append(f"Flick angulaire de {snap:.1f}°/tick à la limite humaine")
         wh_locks = int(wh.get("wh_nb_locks", 0))

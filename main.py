@@ -3,9 +3,9 @@ CS2 Anti-Cheat Dashboard — Point d'entrée principal
 Lance l'interface graphique CustomTkinter ou mode console.
 """
 
+import argparse
 import os
 import sys
-import argparse
 
 # Configuration UTF-8 pour la console Windows
 if sys.platform == "win32":
@@ -17,7 +17,7 @@ if sys.platform == "win32":
 
 DIR_RACINE = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "2.5.0"
+VERSION = "2.5.1"
 
 
 def resource_path(relative_path: str) -> str:
@@ -52,6 +52,10 @@ def run_console_analysis(demo_path: str, model_path: str = None, model_type: str
     if model_path and not os.path.isfile(model_path):
         print(f"[AVERTISSEMENT] Modèle ML introuvable : {model_path}. Repli sur l'heuristique experte.")
         model_path = None
+        # Repli explicite sur le modèle synthétique de référence uniquement si
+        # aucun chemin de modèle n'est exploitable.
+        if model_type == "cs2cd":
+            model_type = "synthetic"
     try:
         from src.core.engine import AntiCheatEngine
         engine = AntiCheatEngine(model_path=model_path, model_type=model_type)
@@ -78,6 +82,17 @@ def main():
         from src.ui.app import CS2AntiCheatApp
         app = CS2AntiCheatApp()
         app.mainloop()
+    except FileNotFoundError as e:
+        # Modèle CS2CD absent : repli explicite sur le modèle synthétique de référence.
+        print(f"[AVERTISSEMENT] Modèle principal indisponible : {e}")
+        print("[AVERTISSEMENT] Repli sur le modèle synthétique de référence (mode dégradé).")
+        try:
+            from src.ui.app import CS2AntiCheatApp
+            app = CS2AntiCheatApp(model_type="synthetic")
+            app.mainloop()
+        except Exception as e2:
+            print(f"[ERREUR CRITIQUE] Impossible d'initialiser l'interface graphique : {e2}", file=sys.stderr)
+            sys.exit(1)
     except Exception as e:
         print(f"[ERREUR CRITIQUE] Impossible d'initialiser l'interface graphique : {e}", file=sys.stderr)
         sys.exit(1)

@@ -97,7 +97,7 @@ class TestTier4RealWorldWorkloads(unittest.TestCase):
             # Biomechanical metrics sanity checks
             aim = player.aim_metrics
             self.assertGreater(aim.get("aim_vitesse_max", 0.0), 0.0)
-            self.assertGreater(aim.get("aim_snap_max", 0.0), 0.0)
+            self.assertGreater(aim.get("aim_p99", 0.0), 0.0)
             self.assertGreaterEqual(aim.get("aim_jerk_max", 0.0), 0.0)
 
             bhop = player.bhop_metrics
@@ -125,7 +125,7 @@ class TestTier4RealWorldWorkloads(unittest.TestCase):
         top_player = sorted_players[0]
 
         qcm_selections = [
-            "Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)",
+            "Snaps instantanés et verrouillage de tête latence alignement (Aimbot / Silent Aim)",
             "Visée anormale à travers les fumigènes / murs (Pre-aiming & Wallhack)",
         ]
         user_notes = f"Audit officiel CS2 de la démo {os.path.basename(res.demo_path)} - Carte {res.map_name}"
@@ -169,7 +169,7 @@ class TestTier4RealWorldWorkloads(unittest.TestCase):
 
         # Step 1: User picks replay from catalog
         replays = ReplayScanner.list_replays()
-        selected_replay = replays[0]
+        self.assertGreater(len(replays), 0, "Replay catalog must not be empty")
 
         # Step 2: User clicks "Analyser" (executed on worker thread)
         ui_events = []
@@ -197,7 +197,7 @@ class TestTier4RealWorldWorkloads(unittest.TestCase):
         target_player = max(match_res.players, key=lambda p: p.suspicion_score)
 
         # Step 5: User fills QCM wizard and clicks "Copier"
-        qcm = ["Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)"]
+        qcm = ["Snaps instantanés et verrouillage de tête latence alignement (Aimbot / Silent Aim)"]
         report_text = Reporter.generate_steam_report(target_player, qcm, "Round 12 clutch verification")
 
         # Step 6: Verify clipboard copy

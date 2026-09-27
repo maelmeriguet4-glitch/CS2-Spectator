@@ -60,7 +60,7 @@ class TestTier2BoundariesR1Replay(unittest.TestCase):
         """R1.B3: Zero-byte .dem file must be rejected by debounce and metadata extractors."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             empty_dem = os.path.join(tmp_dir, "empty.dem")
-            with open(empty_dem, "wb") as f:
+            with open(empty_dem, "wb"):
                 pass  # 0 bytes
 
             # Debounce check must return False immediately or on timeout
@@ -255,7 +255,7 @@ class TestTier2BoundariesR3GUI(unittest.TestCase):
         """R3.B4: Suspicion meter color and verdict transitions at critical thresholds."""
         def get_status_badge(score: float):
             if score < 35.0:
-                return "🟢 LÉGITIME (CLEAN)", "#10B981"
+                return "🟢 NON DÉTECTÉ (CLEAN)", "#10B981"
             elif score < 70.0:
                 return "🟡 SUSPECT (À SURVEILLER)", "#F59E0B"
             return "🔴 TRICHEUR AVÉRÉ (BAN)", "#EF4444"
@@ -302,13 +302,13 @@ class TestTier2BoundariesR4Reporting(unittest.TestCase):
         """R4.B1: Generating report when all QCM options are checked simultaneously."""
         all_options = [
             "Visée anormale à travers les fumigènes / murs (Pre-aiming & Wallhack)",
-            "Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)",
+            "Snaps instantanés et verrouillage de tête latence alignement (Aimbot / Silent Aim)",
             "Compensations de recul parfaites sans dispersion (No-Recoil / Macro)",
             "Sauts parfaits 1-tick en chaîne et prises de vitesse (Bunnyhop Script)",
             "Prises d'informations impossibles et pré-tirs systématiques (Radar / ESP)",
             "Mouvement de caméra désynchronisé / toupie (Anti-Aim / Spinbot)",
         ]
-        player = create_sample_player_telemetry(verdict="CHEATER", suspicion_score=98.5)
+        create_sample_player_telemetry(verdict="CHEATER", suspicion_score=98.5)
 
         bullets = "\n".join(f"  • {opt}" for opt in all_options)
         report = f"OBSERVATIONS EN MATCH (QCM) :\n{bullets}"
@@ -330,7 +330,7 @@ class TestTier2BoundariesR4Reporting(unittest.TestCase):
     def test_r4_b3_extreme_length_auditor_notes(self):
         """R4.B3: Handling 1,000-word user commentary without buffer overflow."""
         massive_notes = "Extremely suspicious clutch round. " * 100
-        player = create_sample_player_telemetry()
+        create_sample_player_telemetry()
         report = f"Commentaires de l'auditeur :\n{massive_notes}"
         self.assertIn("Extremely suspicious clutch round.", report)
         self.assertGreater(len(report), 3000)
@@ -338,7 +338,7 @@ class TestTier2BoundariesR4Reporting(unittest.TestCase):
     def test_r4_b4_unicode_in_report_notes(self):
         """R4.B4: Accented characters and emojis in user comments preserved in UTF-8."""
         unicode_notes = "Tir à travers le mur près du site B 🎯 — vérifié par l'équipe d'arbitrage 🛡️."
-        player = create_sample_player_telemetry()
+        create_sample_player_telemetry()
         report = f"Commentaires :\n{unicode_notes}"
         # Ensure utf-8 encoding works without charmap errors
         encoded = report.encode("utf-8")

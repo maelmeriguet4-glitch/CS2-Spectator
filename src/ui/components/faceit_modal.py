@@ -74,11 +74,13 @@ class FaceitModal(ctk.CTkToplevel):
         
         self.entry_key = ctk.CTkEntry(input_frame, placeholder_text="Faceit Developer API Key (Bearer Token)", show="*", width=300)
         self.entry_key.pack(side="left", padx=5, fill="x", expand=True)
-        if self.api_key: self.entry_key.insert(0, self.api_key)
+        if self.api_key:
+            self.entry_key.insert(0, self.api_key)
         
         self.entry_nick = ctk.CTkEntry(input_frame, placeholder_text="Pseudo Faceit", width=150)
         self.entry_nick.pack(side="left", padx=5)
-        if self.nickname: self.entry_nick.insert(0, self.nickname)
+        if self.nickname:
+            self.entry_nick.insert(0, self.nickname)
         
         btn_save = ctk.CTkButton(settings_frame, text="Connecter", fg_color=THEME["accent_cyan"], text_color="#000000", command=self._on_connect)
         btn_save.pack(pady=10)
@@ -157,7 +159,6 @@ class FaceitModal(ctk.CTkToplevel):
         
         # result (win/loss) -> need to check if our player's faction won.
         results = match_data.get("results", {})
-        winner = results.get("winner", "")
         
         # We don't have faction info from the simple history endpoint easily without details, 
         # so we'll just show map and score if available.

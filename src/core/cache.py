@@ -121,18 +121,24 @@ def load_cached_analysis(demo_path: str, model_fingerprint: Optional[str] = None
 
 
 def save_analysis_cache(demo_path: str, result: MatchAnalysisResult, model_fingerprint: Optional[str] = None) -> None:
-    """Saves a MatchAnalysisResult to the cache and enforces LRU limits."""
+    """Saves a MatchAnalysisResult to the cache securely using atomic writes."""
     demo_hash = get_demo_hash(demo_path, model_fingerprint=model_fingerprint)
     if not demo_hash:
         return
 
     cache_file = get_cache_path(demo_hash)
+    tmp_file = cache_file.with_name(cache_file.name + ".tmp")
 
     try:
         data = result.to_dict()
-        with gzip.open(cache_file, "wt", encoding="utf-8") as f:
+        import gzip
+        import json
+        with gzip.open(tmp_file, "wt", encoding="utf-8") as f:
             json.dump(data, f)
-        logger.info(f"Saved analysis cache to {cache_file}")
+        
+        import os
+        os.replace(tmp_file, cache_file)
+        logger.info(f"Saved analysis cache atomically to {cache_file}")
 
         # Appliquer la politique LRU
         cfg = get_config()
@@ -140,6 +146,11 @@ def save_analysis_cache(demo_path: str, result: MatchAnalysisResult, model_finge
         _apply_lru_eviction(max_entries)
     except Exception as e:
         logger.error(f"Failed to save cache to {cache_file}: {e}")
+        if os.path.exists(tmp_file):
+            try:
+                os.remove(tmp_file)
+            except OSError:
+                pass
 
 
 def clear_cache() -> None:
