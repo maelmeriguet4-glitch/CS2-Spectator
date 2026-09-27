@@ -325,11 +325,11 @@ class CS2AntiCheatApp(ctk.CTk):
         nb_cheat = sum(1 for p in result.players if p.verdict == "CHEATER")
         nb_sus = sum(1 for p in result.players if p.verdict == "SUSPECT")
         if nb_cheat:
-            self.lbl_status.configure(text=f"✅ Analyse terminée — {nb_cheat} tricheur(s) détecté(s) | {nb_sus} suspect(s)")
+            self.lbl_status.configure(text=f"✅ Analyse terminée — {nb_cheat} suspicion(s) élevée(s) | {nb_sus} suspect(s)")
         elif nb_sus:
             self.lbl_status.configure(text=f"✅ Analyse terminée — {nb_sus} suspect(s)")
         else:
-            self.lbl_status.configure(text="✅ Analyse terminée — Aucun tricheur détecté")
+            self.lbl_status.configure(text="✅ Analyse terminée — Aucun signal fort détecté")
         # Legacy alias
         if hasattr(self, 'label_match_info'):
             self.label_match_info.configure(text=result.global_verdict)

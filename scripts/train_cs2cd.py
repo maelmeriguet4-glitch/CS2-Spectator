@@ -58,7 +58,7 @@ def extraire_features_dataset(
     Lit le manifest et extrait les features des joueurs match par match via CS2CDAdapter.
     Applique la politique stricte de labels :
     - 'cheater' (1) : joueur confirmé dans la liste cheaters d'un match with_cheater
-    - 'known_non_cheater' (0) : joueur d'un match no_cheater_present (97.2% certitude)
+    - 'probable_non_cheater' (0) : joueur d'un match no_cheater_present (97.2% certitude)
     - 'unknown' (-1) : joueur non annoté dans un match with_cheater_present (exclu de l'entraînement)
     """
     if os.path.exists(cache_path) and not force_extract:
@@ -122,7 +122,7 @@ def extraire_features_dataset(
                         usable = False
                 else:  # no_cheater_present
                     label_val = 0
-                    label_text = "known_non_cheater"
+                    label_text = "probable_non_cheater"
                     label_conf = "medium"  # 97.2% clean selon CS2CD
                     label_src = "cs2cd_no_vac_match"
                     usable = True

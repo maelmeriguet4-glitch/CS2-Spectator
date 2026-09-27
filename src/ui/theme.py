@@ -189,11 +189,11 @@ def get_status_colors(verdict: str, suspicion_score: float = 0.0) -> Dict[str, s
         return {
             "badge_bg": THEME["cheater_red_bg"],
             "badge_text": THEME["cheater_red_text"],
-            "status_text": "🔴 TRICHEUR AVÉRÉ",
+            "status_text": "🔴 SUSPICION ÉLEVÉE",
             "status_short": "CHEATER",
             "progress_color": THEME["cheater_red"],
             "border_color": THEME["cheater_border"],
-            "why_title": "Violations biomécaniques confirmées :",
+            "why_title": "Anomalies biomécaniques détectées :",
         }
     elif norm_verdict == "SUSPECT" or suspicion_score >= 35.0:
         return {

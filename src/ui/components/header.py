@@ -135,7 +135,7 @@ class MatchHeader(ctk.CTkFrame):
         suspects = [p for p in result.players if p.verdict == "SUSPECT"]
 
         if cheaters:
-            badge_text = f"🔴 {len(cheaters)} TRICHEUR(S) DÉTECTÉ(S)"
+            badge_text = f"🔴 {len(cheaters)} SUSPICION(S) ÉLEVÉE(S)"
             badge_fg = THEME["cheater_red_bg"]
             badge_color = THEME["cheater_red_text"]
         elif suspects:
@@ -143,7 +143,7 @@ class MatchHeader(ctk.CTkFrame):
             badge_fg = THEME["suspect_amber_bg"]
             badge_color = THEME["suspect_amber_text"]
         elif result.players:
-            badge_text = "🟢 MATCH INTÈGRE (100% CLEAN)"
+            badge_text = "🟢 AUCUN SIGNAL FORT DÉTECTÉ"
             badge_fg = THEME["clean_green_bg"]
             badge_color = THEME["clean_green_text"]
         else:

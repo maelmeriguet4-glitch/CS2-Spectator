@@ -113,7 +113,7 @@ class TestUITheme(unittest.TestCase):
 
         cheater = get_status_colors("CHEATER", 92.0)
         self.assertEqual(cheater["status_short"], "CHEATER")
-        self.assertIn("TRICHEUR", cheater["status_text"])
+        self.assertIn("SUSPICION ÉLEVÉE", cheater["status_text"])
         self.assertEqual(cheater["progress_color"], THEME["cheater_red"])
 
     def test_format_team_badge(self):
@@ -187,7 +187,7 @@ class TestMatchHeader(unittest.TestCase):
         self.assertIn("Valve Dedicated Server", self.header.lbl_server.cget("text"))
         self.assertIn("130,000", self.header.lbl_duration.cget("text"))
         self.assertIn("27m 05s", self.header.lbl_duration.cget("text"))
-        self.assertIn("MATCH INTÈGRE", self.header.verdict_badge.cget("text"))
+        self.assertIn("AUCUN SIGNAL FORT DÉTECTÉ", self.header.verdict_badge.cget("text"))
 
     def test_header_update_match_result_cheater(self):
         result = MatchAnalysisResult(
@@ -209,12 +209,12 @@ class TestMatchHeader(unittest.TestCase):
                     violation_flags=["[AIMBOT: Snap 42°/tick]"],
                 )
             ],
-            global_verdict="1 TRICHEUR DÉTECTÉ",
+            global_verdict="1 SUSPICION ÉLEVÉE",
         )
 
         self.header.update_match_result(result)
         self.assertIn("DE_MIRAGE", self.header.lbl_map.cget("text"))
-        self.assertIn("TRICHEUR(S) DÉTECTÉ(S)", self.header.verdict_badge.cget("text"))
+        self.assertIn("SUSPICION(S) ÉLEVÉE(S)", self.header.verdict_badge.cget("text"))
 
     def test_header_loading_and_reset(self):
         self.header.set_loading("test_demo.dem")
@@ -314,7 +314,7 @@ class TestPlayerCard(unittest.TestCase):
 
         self.assertEqual(card.lbl_name.cget("text"), "Jeffrey Epstein")
         self.assertEqual(card.team_badge.cget("text"), "T")
-        self.assertIn("TRICHEUR", card.status_badge.cget("text"))
+        self.assertIn("SUSPICION ÉLEVÉE", card.status_badge.cget("text"))
         self.assertAlmostEqual(card.progress_bar.get(), 0.948, places=2)
 
         # Check violation pills count and text
@@ -525,7 +525,7 @@ class TestCS2AntiCheatApp(unittest.TestCase):
         # Header updated
         self.assertIn("DE_DUST2", self.app.header.lbl_map.cget("text"))
         # Status bar updated
-        self.assertIn("1 tricheur(s) détecté(s)", self.app.lbl_status.cget("text"))
+        self.assertIn("1 suspicion(s) élevée(s)", self.app.lbl_status.cget("text"))
 
     def test_app_queue_poller_messages(self):
         # 1. Put PROGRESS message in queue

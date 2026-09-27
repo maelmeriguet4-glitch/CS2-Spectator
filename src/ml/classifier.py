@@ -336,11 +336,23 @@ def classifier_joueur(
         combined_score = max(combined_score, 40.0)
 
     # 5. Détermination du verdict (terminologie prudente & non accusatrice)
+    # Utiliser le seuil optimisé du bundle CS2CD s'il existe, sinon fallback config
+    bundle_threshold = None
+    if paquet_existant and isinstance(paquet_existant, dict):
+        bundle_threshold = paquet_existant.get("threshold")
+
+    if bundle_threshold is not None:
+        seuil_cheater = float(bundle_threshold) * 100.0
+        seuil_suspect = seuil_cheater * 0.5  # suspect = moitié du seuil optimisé
+    else:
+        seuil_cheater = cfg.ml_cheater_threshold * 100
+        seuil_suspect = cfg.ml_suspect_threshold * 100
+
     has_rage = any("SPINBOT" in c or "Pitch invalide" in c for c in cheats_detectes)
-    if has_rage or combined_score >= (cfg.ml_cheater_threshold * 100) or len(facteurs) >= cfg.ml_critical_factors_cheater:
+    if has_rage or combined_score >= seuil_cheater or len(facteurs) >= cfg.ml_critical_factors_cheater:
         verdict = "SUSPICION ÉLEVÉE"
         statut = "high_suspicion"
-    elif combined_score >= (cfg.ml_suspect_threshold * 100) or len(facteurs) >= cfg.ml_critical_factors_suspect:
+    elif combined_score >= seuil_suspect or len(facteurs) >= cfg.ml_critical_factors_suspect:
         verdict = "SUSPECT"
         statut = "suspect"
     else:
@@ -382,18 +394,22 @@ class ClassificationResult:
     pills: List[str] = field(default_factory=list)
 
     @property
-    def probabilities(self):
-        cheat = max(0.0, min(100.0, self.suspicion_score))
-        clean = 100.0 - cheat
+    def suspicion_scores(self):
+        """Scores de suspicion (PAS des probabilités calibrées). Échelle 0-100."""
+        score = max(0.0, min(100.0, self.suspicion_score))
+        inverse = 100.0 - score
         return {
-            "clean": clean,
-            "cheat": cheat,
-            "suspect": cheat if 35 <= cheat < 70 else 0,
-            "cheater": cheat if cheat >= 70 else 0,
-            "CLEAN": clean,
-            "CHEATER": cheat,
-            "CHEAT": cheat,
+            "clean": inverse,
+            "suspicion": score,
+            "CLEAN": inverse,
+            "SUSPECT": score if 35 <= score < 70 else 0,
+            "HIGH_SUSPICION": score if score >= 70 else 0,
         }
+
+    @property
+    def probabilities(self):
+        """Alias rétrocompatible — préférer suspicion_scores."""
+        return self.suspicion_scores
 
 
 class CheatClassifier:
@@ -441,10 +457,21 @@ class CheatClassifier:
         pills = list(res_fr.get("pills", []))
 
         # Déterminer verdict EN pour compatibilité stricte des tests
-        if score >= 70.0 or len(facteurs) >= 2 or any("SPINBOT" in p for p in pills):
+        # Utiliser le seuil du bundle si disponible
+        from src.core.config import get_config
+        cfg = get_config()
+        bundle_threshold = self._bundle.get("threshold") if isinstance(self._bundle, dict) else None
+        if bundle_threshold is not None:
+            seuil_high = float(bundle_threshold) * 100.0
+            seuil_sus = seuil_high * 0.5
+        else:
+            seuil_high = cfg.ml_cheater_threshold * 100
+            seuil_sus = cfg.ml_suspect_threshold * 100
+
+        if score >= seuil_high or len(facteurs) >= 2 or any("SPINBOT" in p for p in pills):
             verdict_en = "CHEATER"
             display = f"🔴 CHEATER ({score:.1f}%)"
-        elif score >= 35.0 or len(facteurs) >= 1:
+        elif score >= seuil_sus or len(facteurs) >= 1:
             verdict_en = "SUSPECT"
             display = f"🟡 SUSPECT ({score:.1f}%)"
         else:

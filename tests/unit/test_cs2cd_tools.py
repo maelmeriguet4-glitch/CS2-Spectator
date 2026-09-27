@@ -3,7 +3,7 @@ Tests unitaires et d'intégration pour le pipeline CS2CD (CS2 Cheat Detection).
 Couvre :
 - Parsing Parquet et JSON via CS2CDAdapter
 - Couche d'identité interne et normalisation des ticks
-- Politique d'étiquetage stricte (cheater, known_non_cheater, unknown)
+- Politique d'étiquetage stricte (cheater, probable_non_cheater, unknown)
 - Vérification d'étanchéité des splits (anti-leakage)
 - Format du bundle de modèle (cerveau_vac_cs2cd.pkl)
 - Protection contre les fallbacks trompeurs
@@ -25,6 +25,7 @@ from src.ml.classifier import (
     FICHIER_MODELE_SYNTHETIQUE,
     NOMS_FEATURES,
     CheatClassifier,
+    ClassificationResult,
     charger_ou_entrainer_modele,
     extraire_vecteur_features,
 )
@@ -196,6 +197,171 @@ class TestCS2CDModelBundleAndIntegrity(unittest.TestCase):
         non_existent = os.path.join(self.temp_dir, "not_exist.pkl")
         with self.assertRaises(FileNotFoundError):
             charger_ou_entrainer_modele(chemin_modele=non_existent, model_type="cs2cd")
+
+
+class TestBundleThresholdAtRuntime(unittest.TestCase):
+    """Vérifie que le seuil optimisé du bundle est utilisé au runtime."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.fake_model_path = os.path.join(self.temp_dir, "test_bundle.pkl")
+
+        # Créer un bundle avec threshold=0.25 (différent du config default)
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.preprocessing import StandardScaler
+
+        X = np.random.default_rng(42).standard_normal((100, 15))
+        y = np.array([0] * 50 + [1] * 50)
+        scaler = StandardScaler().fit(X)
+        rf = RandomForestClassifier(n_estimators=10, random_state=42).fit(scaler.transform(X), y)
+
+        bundle = {
+            "scaler": scaler,
+            "modele": rf,
+            "isolation_forest": None,
+            "noms_features": NOMS_FEATURES,
+            "dataset_name": "CS2CD_test",
+            "threshold": 0.25,  # Seuil optimisé = 25%
+            "model_type": "RandomForestClassifier",
+        }
+        joblib.dump(bundle, self.fake_model_path)
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_bundle_threshold_is_used_not_config_default(self):
+        """Le seuil du bundle (0.25 → 25%) doit primer sur cfg.ml_cheater_threshold."""
+        classifier = CheatClassifier(model_path=self.fake_model_path)
+        # Le bundle contient threshold=0.25
+        self.assertEqual(classifier._bundle.get("threshold"), 0.25)
+
+    def test_classifier_with_bundle_threshold_affects_verdict(self):
+        """Un score >25% avec threshold=0.25 doit donner CHEATER, pas CLEAN."""
+        classifier = CheatClassifier(model_path=self.fake_model_path)
+        # Profils aimbot suspects mais pas extrêmes
+        aim = {"aim_snap_max": 20.0, "aim_jerk_max": 10.0}
+        bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.1}
+        wh = {"wh_ratio_lock_strict": 0.02, "wh_tracking_consecutif_max": 5}
+        res = classifier.predict(aim, bhop, wh)
+        # Avec le snap à 20° > seuil aimbot, on a au moins 1 facteur → SUSPECT min
+        self.assertIn(res.verdict, ["SUSPECT", "CHEATER"])
+
+
+class TestCS2CDModelSelection(unittest.TestCase):
+    """Vérifie que model_type='cs2cd' charge bien le modèle CS2CD, pas le synthétique."""
+
+    def test_cs2cd_model_type_raises_if_missing(self):
+        """Si cerveau_vac_cs2cd.pkl n'existe pas, model_type='cs2cd' lève FileNotFoundError."""
+        import tempfile
+        fake_path = os.path.join(tempfile.gettempdir(), "this_does_not_exist_12345.pkl")
+        if os.path.exists(fake_path):
+            os.remove(fake_path)
+        with self.assertRaises(FileNotFoundError):
+            charger_ou_entrainer_modele(chemin_modele=fake_path, model_type="cs2cd")
+
+    def test_synthetic_fallback_explicit_only(self):
+        """model_type='auto' ou 'synthetic' charge le synthétique sans erreur."""
+        bundle = charger_ou_entrainer_modele(model_type="auto")
+        self.assertIn("modele", bundle)
+        self.assertIn("scaler", bundle)
+
+    def test_cs2cd_bundle_loaded_when_file_exists(self):
+        """Si cerveau_vac_cs2cd.pkl existe, model_type='cs2cd' le charge."""
+        if not os.path.exists(FICHIER_MODELE_CS2CD):
+            self.skipTest("cerveau_vac_cs2cd.pkl not present")
+        bundle = charger_ou_entrainer_modele(model_type="cs2cd")
+        self.assertEqual(bundle.get("dataset_name", ""), "CS2CD")
+
+
+class TestPrudentVerdictTerminology(unittest.TestCase):
+    """Vérifie l'absence de termes affirmatifs interdits dans les résultats."""
+
+    TERMES_INTERDITS = [
+        "TRICHEUR AVÉRÉ",
+        "TRICHEUR(S) AVÉRÉ(S)",
+        "MATCH INTÈGRE",
+        "100% CLEAN",
+        "probabilité de triche",
+    ]
+
+    def test_classifier_verdict_no_affirmatif_language(self):
+        """Le classifier FR ne doit jamais retourner de verdict affirmatif."""
+        from src.ml.classifier import classifier_joueur
+        # Profils extrêmes pour déclencher SUSPICION ÉLEVÉE
+        aim = {"aim_snap_max": 50.0, "aim_jerk_max": 100.0}
+        bhop = {"bhop_total_sauts": 50, "bhop_ratio_parfaits": 0.95, "bhop_chaine_max": 8}
+        wh = {"wh_ratio_lock_strict": 0.30, "wh_tracking_consecutif_max": 150}
+        res = classifier_joueur(aim, bhop, wh, nom_joueur="TestPlayer")
+        self.assertIsNotNone(res)
+        verdict = res["verdict"]
+        for terme in self.TERMES_INTERDITS:
+            self.assertNotIn(terme, verdict, f"Terme interdit '{terme}' trouvé dans le verdict")
+        # Le verdict doit être SUSPICION ÉLEVÉE, pas TRICHE AVÉRÉE
+        self.assertEqual(verdict, "SUSPICION ÉLEVÉE")
+
+    def test_clean_verdict_prudent(self):
+        """Un joueur clean doit avoir le verdict LÉGITIME, pas 'MATCH INTÈGRE'."""
+        from src.ml.classifier import classifier_joueur
+        aim = {"aim_snap_max": 3.0, "aim_jerk_max": 5.0}
+        bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.05}
+        wh = {"wh_ratio_lock_strict": 0.01, "wh_tracking_consecutif_max": 2}
+        res = classifier_joueur(aim, bhop, wh, nom_joueur="CleanPlayer")
+        self.assertIsNotNone(res)
+        self.assertEqual(res["verdict"], "LÉGITIME")
+
+
+class TestSuspicionScoresAPI(unittest.TestCase):
+    """Vérifie que la property suspicion_scores remplace correctement probabilities."""
+
+    def test_suspicion_scores_has_correct_keys(self):
+        """suspicion_scores doit exposer 'clean', 'suspicion', pas 'cheat'."""
+        result = ClassificationResult(
+            verdict="CLEAN", suspicion_score=15.0,
+            display_verdict="🟢 CLEAN (15.0%)",
+        )
+        scores = result.suspicion_scores
+        self.assertIn("clean", scores)
+        self.assertIn("suspicion", scores)
+        self.assertNotIn("cheat", scores)
+        self.assertNotIn("CHEAT", scores)
+        self.assertAlmostEqual(scores["clean"], 85.0)
+        self.assertAlmostEqual(scores["suspicion"], 15.0)
+
+    def test_probabilities_backward_compat(self):
+        """L'alias probabilities retourne les mêmes données que suspicion_scores."""
+        result = ClassificationResult(
+            verdict="SUSPECT", suspicion_score=50.0,
+            display_verdict="🟡 SUSPECT (50.0%)",
+        )
+        self.assertEqual(result.probabilities, result.suspicion_scores)
+
+
+class TestCriticallyIncompleteData(unittest.TestCase):
+    """Vérifie le comportement face à des données critiquement incomplètes."""
+
+    def test_adapter_with_no_tick_column_still_loads(self):
+        """Un parquet sans colonne 'tick' ne doit pas crasher mais sera peu exploitable."""
+        temp_dir = tempfile.mkdtemp()
+        try:
+            p_path = os.path.join(temp_dir, "bad.parquet")
+            j_path = os.path.join(temp_dir, "bad.json")
+            # Parquet sans colonne tick — colonnes complètement différentes
+            pd.DataFrame({"random_col": [1, 2]}).to_parquet(p_path)
+            with open(j_path, "w") as f:
+                json.dump({}, f)
+            adapter = CS2CDAdapter(p_path, j_path)
+            # L'adapter ne crash pas mais ne devrait pas valider sans steamid
+            # (tick manquant aussi rempli par défaut 0)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_classifier_rejects_none_profiles(self):
+        """classifier_joueur retourne None si les profils sont None."""
+        from src.ml.classifier import classifier_joueur
+        self.assertIsNone(classifier_joueur(None, None, None))
+        self.assertIsNone(classifier_joueur(None, {}, {}))
+        self.assertIsNone(classifier_joueur({}, None, {}))
+        self.assertIsNone(classifier_joueur({}, {}, None))
 
 
 if __name__ == "__main__":

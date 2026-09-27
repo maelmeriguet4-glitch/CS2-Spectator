@@ -220,7 +220,7 @@ class AntiCheatEngine:
 
         if cheaters:
             names_cheaters = ", ".join([p.name for p in cheaters[:3]])
-            global_verdict = f"{len(cheaters)} TRICHEUR(S) AVÉRÉ(S) DÉTECTÉ(S) ({names_cheaters})"
+            global_verdict = f"{len(cheaters)} SUSPICION(S) ÉLEVÉE(S) ({names_cheaters})"
             if suspects:
                 global_verdict += f" | {len(suspects)} SUSPECT(S)"
         elif suspects:
@@ -229,7 +229,7 @@ class AntiCheatEngine:
         elif errors:
             global_verdict = f"MATCH INCOMPLET ({len(errors)} ERREUR(S) D'ANALYSE)"
         else:
-            global_verdict = "MATCH INTÈGRE (AUCUN TRICHEUR DÉTECTÉ)"
+            global_verdict = "AUCUN SIGNAL FORT DÉTECTÉ"
 
         _report(1.0, f"Analyse terminée avec succès. Verdict : {global_verdict}")
 
