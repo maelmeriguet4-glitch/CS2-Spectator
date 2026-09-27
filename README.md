@@ -6,7 +6,7 @@
   <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
   <p>
-    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.4.0-4263EB?style=for-the-badge" alt="Version 2.4.0"></a>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.4.1-4263EB?style=for-the-badge" alt="Version 2.4.1"></a>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
     <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
     <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
@@ -66,7 +66,7 @@ Les catégories d'un match ne permettent pas d'attribuer automatiquement une vé
 |---|---|---|
 | `cheater` | Joueur explicitement annoté dans la liste des tricheurs d'un match `with_cheater_present` | Inclus, classe positive |
 | `unknown` | Joueur non annoté dans un match où un tricheur est présent | **Exclu** de l'entraînement binaire |
-| `known_non_cheater` | Joueur d'un match `no_cheater_present` | Inclus, classe négative avec confiance documentée comme moyenne |
+| `probable_non_cheater` | Joueur d'un match `no_cheater_present` | Inclus comme classe négative, avec confiance moyenne (97,2 % selon la documentation CS2CD) |
 
 En particulier, **un joueur non annoté dans un match avec tricheur n'est pas réputé légitime**. Les annotations indirectes de CS2CD peuvent être erronées — le projet documente un taux d'erreur de **44,4 % lié au Trust Factor** pour cette population. Le pipeline conserve donc ces observations avec l'étiquette `unknown` au lieu de les convertir en exemples négatifs.
 
@@ -81,7 +81,9 @@ Le dépôt distingue deux modèles :
 
 Le classifieur de l'application conserve le modèle synthétique comme modèle de référence par défaut. Un modèle CS2CD peut être sélectionné explicitement (`model_type="cs2cd"` ou chemin de modèle) et doit alors être disponible et valide : le pipeline ne le remplace pas silencieusement par le modèle synthétique.
 
-Le champ `suspicion_score` est un **score combiné d'anomalie comportementale** : il agrège la sortie du modèle et les signaux/anomalies biomécaniques. Ce n'est **ni une probabilité calibrée que la personne triche, ni une certitude mathématique**. Un score, une étiquette `SUSPECT` ou une **suspicion élevée** doit toujours être confronté aux séquences du replay et à d'autres éléments.
+Lorsqu'un bundle CS2CD contient un seuil `threshold` appris sur le jeu de validation, le classifieur l'utilise pour distinguer les niveaux de suspicion à l'exécution. En l'absence de seuil dans le bundle, les seuils de configuration existants s'appliquent.
+
+Le champ `suspicion_score` et la propriété `suspicion_scores` expriment des **scores combinés d'anomalie comportementale**, pas des probabilités calibrées. L'ancien nom de propriété `probabilities` est conservé comme alias de compatibilité, mais ses valeurs ne sont pas des probabilités. Un score, une étiquette `SUSPECT` ou une **suspicion élevée** doit toujours être confronté aux séquences du replay et à d'autres éléments.
 
 La terminologie des résultats vise la prudence : **anomalie biomécanique**, **suspicion élevée** et **INFO-ESP** décrivent les signaux détectés, sans attribuer à eux seuls une intention ou une culpabilité. Un alignement sur une cible non visible n'est pas, à lui seul, la preuve d'un wallhack.
 
@@ -121,7 +123,7 @@ N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins l
 
 ## Tests
 
-La suite comprend **108 tests unitaires** ; sur la vérification actuelle, **106 réussissent et 2 sont ignorés**. Pour la relancer :
+La suite comprend **119 tests unitaires** ; sur la vérification de cette version, **117 réussissent et 2 sont ignorés**. Pour la relancer :
 
 ```bash
 python -m pytest tests/unit/
