@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('C:/Users/pc/Desktop/Cs2 anticheat/cs2_anticheat/cerveau_vac_custom.pkl', '.'), ('C:/Users/pc/Desktop/Cs2 anticheat/cs2_anticheat/src', 'src')]
+datas = [('cerveau_vac_cs2cd.pkl', '.'), ('src', 'src')]
 binaries = []
 hiddenimports = ['watchdog', 'pyperclip', 'sklearn', 'joblib', 'pandas', 'numpy', 'PIL', 'darkdetect']
 tmp_ret = collect_all('customtkinter')
@@ -11,7 +11,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['C:/Users/pc/Desktop/Cs2 anticheat/cs2_anticheat/main.py'],
+    ['main.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,

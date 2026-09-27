@@ -29,7 +29,7 @@ class FaceitAPI:
         url = f"{self.BASE_URL}{endpoint}"
         req = urllib.request.Request(url, headers=self.headers)
         try:
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=15) as response:
                 return json.loads(response.read().decode())
         except urllib.error.HTTPError as e:
             if e.code == 401:
@@ -69,33 +69,48 @@ class FaceitAPI:
         gz_path = dest_dem_path + ".gz"
         try:
             # 1. Download
-            req = urllib.request.Request(demo_url)
-            with urllib.request.urlopen(req) as response:
+            safe_url = demo_url.strip().replace(" ", "%20")
+            if not safe_url.startswith("http"):
+                safe_url = "https://" + safe_url
+                
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CS2AntiCheat'}
+            req = urllib.request.Request(safe_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as response:
                 total_length = response.headers.get('content-length')
-                if total_length is None:
-                    with open(gz_path, 'wb') as out_file:
-                        shutil.copyfileobj(response, out_file)
-                else:
-                    total_length = int(total_length)
-                    downloaded = 0
-                    chunk_size = 8192
-                    with open(gz_path, 'wb') as out_file:
-                        while True:
-                            buffer = response.read(chunk_size)
-                            if not buffer:
-                                break
-                            downloaded += len(buffer)
-                            out_file.write(buffer)
-                            if progress_callback:
-                                progress_callback(downloaded / total_length, "Téléchargement...")
+                chunk_size = 1024 * 64  # 64KB chunks
+                downloaded = 0
+                
+                with open(gz_path, 'wb') as out_file:
+                    while True:
+                        buffer = response.read(chunk_size)
+                        if not buffer:
+                            break
+                        downloaded += len(buffer)
+                        out_file.write(buffer)
+                        
+                        if progress_callback:
+                            if total_length:
+                                progress_callback(downloaded / int(total_length), "Téléchargement...")
+                            else:
+                                # Si pas de Content-Length, on affiche au moins les Mo téléchargés
+                                progress_callback(0.0, f"Téléchargé : {downloaded // (1024*1024)} Mo")
             
             # 2. Extract
             if progress_callback:
                 progress_callback(1.0, "Extraction de l'archive...")
                 
+            MAX_EXTRACT_SIZE = 500 * 1024 * 1024  # 500 MB limit
+            extracted_size = 0
             with gzip.open(gz_path, 'rb') as f_in:
                 with open(dest_dem_path, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+                    while True:
+                        chunk = f_in.read(1024 * 64)
+                        if not chunk:
+                            break
+                        extracted_size += len(chunk)
+                        if extracted_size > MAX_EXTRACT_SIZE:
+                            raise ValueError("Démo trop volumineuse (zip bomb potentielle).")
+                        f_out.write(chunk)
                     
             # 3. Clean up
             os.remove(gz_path)

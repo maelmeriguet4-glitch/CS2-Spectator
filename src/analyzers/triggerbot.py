@@ -91,6 +91,23 @@ def _check_intersection(xj, yj, zj, yaw, pitch, xe, ye, ze, radius=16.0):
 
 def _get_weapon_fires(demo_data, user_name):
     fires = []
+    # Utilize the correct interface for weapon_fire events (Correction AUD-02)
+    if hasattr(demo_data, 'get_player_events'):
+        tirs_df = demo_data.get_player_events(user_name, "weapon_fire")
+        if not tirs_df.empty and 'tick' in tirs_df.columns:
+            fires = tirs_df['tick'].tolist()
+    elif hasattr(demo_data, 'tirs'):
+        tirs_df = demo_data.tirs
+        if not tirs_df.empty:
+            cols_name = [c for c in ["user_name", "attacker_name", "name"] if c in tirs_df.columns]
+            for c in cols_name:
+                user_fires = tirs_df[tirs_df[c] == user_name]
+                if not user_fires.empty and 'tick' in user_fires.columns:
+                    fires.extend(user_fires['tick'].tolist())
+
+    if fires:
+        return sorted(list(set(fires)))
+
     if hasattr(demo_data, 'events'):
         events = demo_data.events
         if not events.empty and 'event_name' in events.columns:

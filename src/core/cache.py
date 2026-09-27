@@ -18,21 +18,24 @@ logger = logging.getLogger(__name__)
 
 CACHE_DIR = Path(os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))) / "CS2AntiCheat" / "Cache"
 
-def get_demo_hash(demo_path: str) -> str:
+def get_demo_hash(demo_path: str) -> Optional[str]:
     """Generates a fast hash for a demo file based on its path, size, and first 1MB chunk."""
     if not os.path.exists(demo_path):
-        return "invalid"
+        return None
     
     stat = os.stat(demo_path)
     h = hashlib.md5()
-    h.update(str(stat.st_size).encode())
-    h.update(os.path.basename(demo_path).encode())
+    # Add engine schema version and absolute path to avoid stale caches and collisions
+    h.update(b"v2.0.0") 
+    h.update(os.path.abspath(demo_path).encode('utf-8'))
+    h.update(str(stat.st_size).encode('utf-8'))
     
     try:
         with open(demo_path, "rb") as f:
             h.update(f.read(1024 * 1024))  # Hash first 1MB
     except Exception as e:
         logger.warning(f"Could not read chunk of {demo_path} for hash: {e}")
+        return None
         
     return h.hexdigest()
 
@@ -46,6 +49,9 @@ def get_cache_path(demo_hash: str) -> Path:
 def load_cached_analysis(demo_path: str) -> Optional[MatchAnalysisResult]:
     """Loads a MatchAnalysisResult from the cache if it exists and is valid."""
     demo_hash = get_demo_hash(demo_path)
+    if not demo_hash:
+        return None
+        
     cache_file = get_cache_path(demo_hash)
     
     if not cache_file.exists():
@@ -68,6 +74,9 @@ def load_cached_analysis(demo_path: str) -> Optional[MatchAnalysisResult]:
 def save_analysis_cache(demo_path: str, result: MatchAnalysisResult) -> None:
     """Saves a MatchAnalysisResult to the cache."""
     demo_hash = get_demo_hash(demo_path)
+    if not demo_hash:
+        return
+        
     cache_file = get_cache_path(demo_hash)
     
     try:

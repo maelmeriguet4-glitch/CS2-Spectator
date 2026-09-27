@@ -203,7 +203,7 @@ class AntiCheatEngine:
                         steamid=str(p_info.get("steamid", "")),
                         name=str(p_info.get("name", "Unknown")),
                         team_number=int(p_info.get("team_number", 0)),
-                        verdict="CLEAN",
+                        verdict="ERROR",
                     )
                 completed_count += 1
                 base_pct = 0.20 + (0.70 * (completed_count / total_players))
@@ -216,6 +216,7 @@ class AntiCheatEngine:
         # 5. Global verdict calculation
         cheaters = [p for p in analyzed_players if p.verdict == "CHEATER"]
         suspects = [p for p in analyzed_players if p.verdict == "SUSPECT"]
+        errors = [p for p in analyzed_players if p.verdict == "ERROR"]
 
         if cheaters:
             names_cheaters = ", ".join([p.name for p in cheaters[:3]])
@@ -225,6 +226,8 @@ class AntiCheatEngine:
         elif suspects:
             names_suspects = ", ".join([p.name for p in suspects[:3]])
             global_verdict = f"{len(suspects)} JOUEUR(S) SUSPECT(S) ({names_suspects})"
+        elif errors:
+            global_verdict = f"MATCH INCOMPLET ({len(errors)} ERREUR(S) D'ANALYSE)"
         else:
             global_verdict = "MATCH INTÈGRE (AUCUN TRICHEUR DÉTECTÉ)"
 

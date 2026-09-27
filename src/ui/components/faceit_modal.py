@@ -45,7 +45,6 @@ class FaceitModal(ctk.CTkToplevel):
             try:
                 with open(FACEIT_CONFIG_PATH, "r") as f:
                     data = json.load(f)
-                    self.api_key = data.get("api_key", "")
                     self.nickname = data.get("nickname", "")
                     self.player_id = data.get("player_id", "")
             except Exception as _e:
@@ -56,7 +55,6 @@ class FaceitModal(ctk.CTkToplevel):
         FACEIT_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(FACEIT_CONFIG_PATH, "w") as f:
             json.dump({
-                "api_key": self.api_key,
                 "nickname": self.nickname,
                 "player_id": self.player_id
             }, f)
@@ -98,7 +96,7 @@ class FaceitModal(ctk.CTkToplevel):
         self.nickname = self.entry_nick.get().strip()
         
         if not self.api_key or not self.nickname:
-            self.lbl_status.configure(text="Veuillez remplir tous les champs.", text_color=THEME["danger"])
+            self.lbl_status.configure(text="Veuillez remplir tous les champs.", text_color=THEME["cheater_red"])
             return
             
         self.lbl_status.configure(text="Connexion en cours...", text_color=THEME["text_muted"])
@@ -112,10 +110,10 @@ class FaceitModal(ctk.CTkToplevel):
             self.player_id = p_info["player_id"]
             self._save_config()
             
-            self.lbl_status.configure(text=f"Connecté en tant que {self.nickname} ! Récupération des matchs...", text_color=THEME["accent_cyan"])
-            self._fetch_matches()
+            self.after(0, lambda: self.lbl_status.configure(text=f"Connecté en tant que {self.nickname} ! Récupération des matchs...", text_color=THEME["accent_cyan"]))
+            self.after(0, self._fetch_matches)
         except Exception as e:
-            self.lbl_status.configure(text=f"Erreur : {e}", text_color=THEME["danger"])
+            self.after(0, lambda err=e: self.lbl_status.configure(text=f"Erreur : {err}", text_color=THEME["cheater_red"]))
 
     def _fetch_matches(self):
         if not self.api_key or not self.player_id:
@@ -125,20 +123,25 @@ class FaceitModal(ctk.CTkToplevel):
             api = FaceitAPI(self.api_key)
             try:
                 matches = api.get_recent_matches(self.player_id, limit=20)
-                # clear scroll
-                for w in self.scroll_matches.winfo_children():
-                    w.destroy()
                 
-                if not matches:
-                    lbl = ctk.CTkLabel(self.scroll_matches, text="Aucun match CS2 récent trouvé.")
-                    lbl.pack(pady=20)
-                
-                for m in matches:
-                    self._create_match_row(m)
+                def update_ui():
+                    # clear scroll
+                    for w in self.scroll_matches.winfo_children():
+                        w.destroy()
                     
-                self.lbl_status.configure(text="Matchs chargés.", text_color=THEME["text_muted"])
+                    if not matches:
+                        lbl = ctk.CTkLabel(self.scroll_matches, text="Aucun match CS2 récent trouvé.")
+                        lbl.pack(pady=20)
+                    
+                    for m in matches:
+                        self._create_match_row(m)
+                        
+                    self.lbl_status.configure(text="Matchs chargés.", text_color=THEME["text_muted"])
+                
+                self.after(0, update_ui)
+                
             except Exception as e:
-                self.lbl_status.configure(text=f"Erreur historique : {e}", text_color=THEME["danger"])
+                self.after(0, lambda err=e: self.lbl_status.configure(text=f"Erreur historique : {err}", text_color=THEME["cheater_red"]))
                 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -179,30 +182,55 @@ class FaceitModal(ctk.CTkToplevel):
 
     def _download_match(self, match_id: str, button: ctk.CTkButton, dest_path: str):
         button.configure(state="disabled", text="Préparation...")
+        print(f"[DEBUG] _download_match started for match_id: {match_id}")
         
         def worker():
+            print("[DEBUG] worker thread started")
             api = FaceitAPI(self.api_key)
             try:
+                print("[DEBUG] fetching match details...")
                 details = api.get_match_details(match_id)
+                print(f"[DEBUG] details fetched, keys: {details.keys()}")
                 demo_urls = details.get("demo_url", [])
                 if not demo_urls:
-                    button.configure(text="Pas de démo", fg_color=THEME["danger"])
+                    print("[DEBUG] no demo URLs found!")
+                    self.after(0, lambda: button.configure(text="Pas de démo", fg_color=THEME["cheater_red"]))
                     return
                 
                 url = demo_urls[0]
+                print(f"[DEBUG] demo url selected: {url}")
+                
+                import time
+                last_update = [0]
                 
                 def prog(pct, msg=""):
-                    button.configure(text=f"{int(pct*100)}% {msg}")
+                    now = time.time()
+                    if now - last_update[0] > 0.1 or pct >= 1.0:
+                        last_update[0] = now
+                        # We use try/except inside the lambda just in case
+                        self.after(0, lambda p=pct, m=msg: button.configure(text=f"{int(p*100)}% {m}") if p else button.configure(text=m))
                     
+                print("[DEBUG] starting FaceitAPI.download_and_extract_demo")
                 FaceitAPI.download_and_extract_demo(url, dest_path, progress_callback=prog)
+                print("[DEBUG] download_and_extract_demo finished successfully")
                 
-                button.configure(text="Terminé !", fg_color=THEME["success"])
+                self.after(0, lambda: button.configure(text="Terminé !", fg_color=THEME["clean_green"]))
                 
-                if self.on_download_complete:
-                    self.on_download_complete()
+                if getattr(self, 'on_download_complete', None):
+                    self.after(0, self.on_download_complete)
                     
             except Exception as e:
-                button.configure(text="Erreur", fg_color=THEME["danger"])
-                self.lbl_status.configure(text=f"Erreur téléchargement : {e}", text_color=THEME["danger"])
+                import traceback
+                print(f"[DEBUG] EXCEPTION IN WORKER: {e}")
+                traceback.print_exc()
+                error_msg = str(e)
+                if "getaddrinfo failed" in error_msg or "no host given" in error_msg:
+                    error_msg = "Démo introuvable/expirée (serveur Faceit injoignable)."
+                elif "HTTP Error 404" in error_msg or "HTTP Error 403" in error_msg:
+                    error_msg = "Démo expirée ou supprimée par Faceit."
                 
+                self.after(0, lambda: button.configure(text="Erreur", fg_color=THEME["cheater_red"]))
+                self.after(0, lambda err=error_msg: self.lbl_status.configure(text=f"Erreur : {err}", text_color=THEME["cheater_red"]))
+                
+        import threading
         threading.Thread(target=worker, daemon=True).start()

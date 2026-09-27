@@ -31,7 +31,7 @@ NOMS_FEATURES = [
 
 # Chemin du modèle : chercher à la racine du projet
 _DIR_RACINE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FICHIER_MODELE = os.path.join(_DIR_RACINE, "cerveau_vac_custom.pkl")
+FICHIER_MODELE = os.path.join(_DIR_RACINE, "cerveau_vac_cs2cd.pkl")
 
 
 def extraire_vecteur_features(profil_aim, profil_bhop, profil_wh):
@@ -163,6 +163,10 @@ def charger_ou_entrainer_modele():
     """Charge le modèle existant ou l'entraîne s'il n'existe pas."""
     if os.path.exists(FICHIER_MODELE):
         try:
+            # TRUST BOUNDARY (AUD-09): joblib.load exécute du code arbitraire (pickle).
+            # NE CHARGER QUE DES MODÈLES LOCAUX DE CONFIANCE. Ne jamais charger un
+            # modèle téléchargé ou fourni par un utilisateur sans vérifier sa signature
+            # (HMAC / RSA) au préalable.
             paquet = joblib.load(FICHIER_MODELE)
             if isinstance(paquet, dict) and "modele" in paquet and "scaler" in paquet:
                 return paquet
@@ -176,7 +180,8 @@ def classifier_joueur(
     profil_aim, profil_bhop, profil_wh,
     nom_joueur="Joueur",
     profil_spin=None,
-    profil_trigger=None
+    profil_trigger=None,
+    paquet_existant=None
 ):
     """
     Évalue un joueur via le modèle ML et génère un diagnostic précis.
@@ -189,7 +194,8 @@ def classifier_joueur(
     from src.core.config import get_config
     cfg = get_config()
 
-    paquet = charger_ou_entrainer_modele()
+    # AUD-08: Use injected bundle if provided, avoiding unnecessary reload
+    paquet = paquet_existant or charger_ou_entrainer_modele()
     scaler = paquet["scaler"]
     modele = paquet["modele"]
     iso = paquet.get("isolation_forest")
@@ -367,6 +373,7 @@ class CheatClassifier:
             nom_joueur="Player",
             profil_spin=spin,
             profil_trigger=tb,
+            paquet_existant=self._bundle
         )
         if res_fr is None:
             res_fr = {"probabilite_triche": 0, "verdict": "LÉGITIME", "facteurs_suspects": [], "cheats_detectes": []}
@@ -414,15 +421,15 @@ class CheatClassifier:
             pills.append(f"[BHOP: Chaîne x{chain}]")
             if chain >= 6 and bhop_ratio > 0.40 and verdict_en == "CLEAN":
                 verdict_en = "SUSPECT"
-        # Wallhack lock
+        # Wallhack lock (AUD-05: Renamed to avoid claiming through-wall without geometry)
         wh_strict = float(wh.get("wh_ratio_lock_strict", 0))
         wh_track = int(wh.get("wh_tracking_consecutif_max", 0))
         if wh_strict > 0.15 and wh_track >= 80:
-            pills.append(f"[WALLHACK: {wh_strict*100:.1f}% Lock Mur]")
+            pills.append(f"[INFO-ESP: {wh_strict*100:.1f}% Lock Non-Vu]")
             if verdict_en == "CLEAN":
                 verdict_en = "SUSPECT"
         if wh_track >= 180:
-            pills.append(f"[WALLHACK: Track {wh_track} ticks]")
+            pills.append(f"[INFO-ESP: Track {wh_track} ticks]")
             if verdict_en == "CLEAN":
                 verdict_en = "SUSPECT"
 

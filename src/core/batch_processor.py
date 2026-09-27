@@ -22,6 +22,8 @@ class BatchProcessor:
         self.msg_queue = multiprocessing.Queue()
         self.total_files = 0
         self.completed_files = 0
+        self.results = []
+        self.errors = []
         
         self._manager_thread = None
         self._stop_event = threading.Event()
@@ -31,6 +33,8 @@ class BatchProcessor:
         """Starts batch analysis. Uses a background thread to manage processes sequentially or in bounded parallel to avoid OOM."""
         self.total_files = len(demo_paths)
         self.completed_files = 0
+        self.results = []
+        self.errors = []
         self.stop_all()
         
         self._stop_event.clear()

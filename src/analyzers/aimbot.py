@@ -108,16 +108,20 @@ def analyser_aimbot(demo_ou_chemin, joueur_cible):
 
     # Extraction des métriques
     if len(donnees_tirs) > 10:
-        source = donnees_tirs
+        source = donnees_tirs.copy()
     else:
-        source = donnees
+        source = donnees.copy()
 
-    vitesse_max_tir = float(source['vitesse_angulaire'].max())
-    jerk_moyen_tir = float(source['jerk'].mean())
-    jerk_max_tir = float(source['jerk'].max())
-    snap_max = float(source['vitesse_angulaire'].quantile(0.99))
-    micro_ajust_tir = float(source['changement_dir'].mean() * 100)
-    variance_vitesse_tir = float(source['vitesse_angulaire'].var())
+    # Nettoyage des NaN et Inf causés par des données corrompues
+    num_cols = source.select_dtypes(include=[np.number]).columns
+    source[num_cols] = source[num_cols].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+
+    vitesse_max_tir = float(source['vitesse_angulaire'].max()) if not source.empty else 0.0
+    jerk_moyen_tir = float(source['jerk'].mean()) if not source.empty else 0.0
+    jerk_max_tir = float(source['jerk'].max()) if not source.empty else 0.0
+    snap_max = float(source['vitesse_angulaire'].quantile(0.99)) if not source.empty else 0.0
+    micro_ajust_tir = float(source['changement_dir'].mean() * 100) if not source.empty else 0.0
+    variance_vitesse_tir = float(source['vitesse_angulaire'].var()) if len(source) > 1 else 0.0
 
     # 3. Biomechanical Deep Metrics: FOV lock, Smoothing Curve & Target Acquisition
     # FOV lock : ratio de ticks consécutifs quasi-stationnaires (<0.3°/tick) juste après un snap (>5°/tick)
@@ -266,31 +270,9 @@ def analyze_aimbot(demo_data_or_path, identifier: str) -> AimbotResult:
             "aim_jerk_max": 0.0, "aim_ratio_micro_ajustements": 0.0, "aim_variance_vitesse": 0.0,
         }
     snaps = []
-    cfg = get_config()
-    if profil.get("aim_snap_max", 0) > cfg.aimbot_snap_threshold or profil.get("aim_jerk_max", 0) > cfg.aimbot_jerk_threshold:
-        traj = []
-        try:
-            d = _get_player_ticks(demo_data, identifier)
-            if not d.empty and "tick" in d.columns:
-                tick = int(d.iloc[0]['tick']) + 20
-                # sample first 10 ticks for trajectory if available
-                for _, r in d.head(10).iterrows():
-                    traj.append({
-                        "yaw": float(r.get('yaw', 0.0)),
-                        "pitch": float(r.get('pitch', 0.0)),
-                        "tick": int(r.get('tick', 0))
-                    })
-            else:
-                tick = 0
-        except Exception:
-            tick = 0
-        snaps.append({
-            "tick": tick,
-            "snap_angle": float(profil.get("aim_snap_max", 0)),
-            "jerk": float(profil.get("aim_jerk_max", 0)),
-            "weapon": "weapon_ak47",
-            "trajectory": traj
-        })
+    # AUD-04 Correction: Do not fabricate incident ticks or weapons from aggregate metrics.
+    # Real per-tick events must be measured directly. Since we only have aggregates here,
+    # we return an empty list for flagged_snaps to avoid presenting synthetic data as proof.
     return AimbotResult(metrics=profil, flagged_snaps=snaps)
 
 # Alias supplémentaires pour robustesse

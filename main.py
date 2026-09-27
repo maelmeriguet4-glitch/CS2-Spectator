@@ -16,7 +16,7 @@ if sys.platform == "win32":
 
 DIR_RACINE = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "2.0.0"
+VERSION = "2.4.0"
 
 
 def resource_path(relative_path: str) -> str:
@@ -29,17 +29,17 @@ def resource_path(relative_path: str) -> str:
 
 
 def create_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CS2 Anti-Cheat Dashboard")
+    parser = argparse.ArgumentParser(prog="CS2AntiCheat", description="CS2 Anti-Cheat Dashboard")
     parser.add_argument("--demo", type=str, default=None, help="Chemin fichier .dem à analyser en mode console")
     parser.add_argument("--model", type=str, default=None, help="Chemin modèle custom .pkl")
-    parser.add_argument("--version", action="version", version=f"CS2 Anti-Cheat {VERSION}")
+    parser.add_argument("--version", action="version", version=f"CS2 Anti-Cheat Replay Auditor v{VERSION}")
     return parser
 
 
 def run_console_analysis(demo_path: str, model_path: str = None) -> int:
     """Analyse console synchrone, retourne 0 succès, 1 erreur."""
     if not demo_path or not os.path.isfile(demo_path):
-        print(f"[ERREUR] Démo introuvable : {demo_path}")
+        print(f"[ERREUR] Fichier de démo introuvable : {demo_path}", file=sys.stderr)
         return 1
     try:
         from src.core.engine import AntiCheatEngine
@@ -58,7 +58,7 @@ def run_console_analysis(demo_path: str, model_path: str = None) -> int:
 def main():
     """Lance l'application CS2 Anti-Cheat Dashboard (GUI ou console)."""
     parser = create_parser()
-    args, unknown = parser.parse_known_args()
+    args = parser.parse_args()
     if args.demo:
         sys.exit(run_console_analysis(args.demo, model_path=args.model))
     # GUI mode - use new tactical app if available, fallback to legacy
