@@ -17,7 +17,7 @@ if sys.platform == "win32":
 
 DIR_RACINE = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "2.4.1"
+VERSION = "2.5.0"
 
 
 def resource_path(relative_path: str) -> str:

@@ -6,7 +6,7 @@
   <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
   <p>
-    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.4.1-4263EB?style=for-the-badge" alt="Version 2.4.1"></a>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.0-4263EB?style=for-the-badge" alt="Version 2.5.0"></a>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
     <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
     <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
@@ -46,15 +46,17 @@ L'analyse peut mettre en évidence des snaps et à-coups de visée, des enchaîn
 - **Analyse de replays** : traitement de fichiers `.dem`, rapports de signaux par joueur et indicateurs biomécaniques.
 - **Interface graphique** : tableau de bord sombre, cartes de joueurs, progression et filtres d'équipe.
 - **Gestion des démos** : recherche locale, sélection manuelle, surveillance des nouveaux replays et analyse par lots.
-- **Import Faceit** : consultation de matchs et téléchargement sécurisé des démos depuis l'API Faceit.
+- **Import Faceit** : consultation de matchs et téléchargement sécurisé des démos depuis l'API Faceit ; seuls les schémas HTTP(S) sont autorisés.
 - **Aide au signalement** : rapports textuels structurés pour accompagner un examen humain.
-- **Recherche reproductible** : outils d'indexation, d'extraction de caractéristiques et d'entraînement avec CS2CD.
+- **Recherche reproductible** : outils d'indexation, d'extraction de caractéristiques et d'entraînement avec CS2CD, y compris des sources Parquet et CSV compressées.
+- **Exécution plus robuste** : détection des lecteurs disponibles, limitation des notifications répétées de démos, gestion du cycle de vie des analyses par lots et cache amélioré.
+- **Intégrité des analyses** : les états `ERROR` et `INSUFFICIENT_DATA` sont préservés ; le moteur n'invente pas de violations quand les données ne permettent pas de conclure.
 
 ## Pipeline de données CS2CD
 
 Le pipeline prend en charge le jeu de données de recherche réel **CS2CD** : **795 matchs, environ 52,6 Go de données brutes**. Ces fichiers restent dans le répertoire local du dataset. L'indexeur écrit un manifeste avec leurs chemins et **ne copie ni ne duplique les fichiers Parquet et JSON**.
 
-`CS2CDAdapter` adapte les enregistrements CS2CD à l'interface des analyseurs. Pour les ticks Parquet, il inspecte le schéma et ne lit que les colonnes nécessaires au moyen de PyArrow / `pandas.read_parquet(columns=...)`. Cette projection évite de charger inutilement toutes les colonnes des fichiers et réduit fortement la pression mémoire ; la mémoire disponible dépend néanmoins de la taille des fichiers et de la machine.
+`CS2CDAdapter` adapte les enregistrements CS2CD à l'interface des analyseurs et prend en charge les sources Parquet et CSV compressées. Pour les ticks Parquet, il inspecte le schéma et ne lit que les colonnes nécessaires au moyen de PyArrow / `pandas.read_parquet(columns=...)`. Cette projection évite de charger inutilement toutes les colonnes des fichiers et réduit fortement la pression mémoire ; la mémoire disponible dépend néanmoins de la taille des fichiers et de la machine.
 
 Le dépôt fournit [`data/anti_cheat_dataset.example.csv`](data/anti_cheat_dataset.example.csv), un exemple public et anonymisé de manifeste. Il illustre les colonnes et chemins relatifs sans inclure les données brutes CS2CD.
 
@@ -74,14 +76,14 @@ L'indexeur répartit les matchs entre **Train (70 %), Validation (15 %) et Test 
 
 ## Modèles et interprétation des scores
 
-Le dépôt distingue deux modèles :
+Le dépôt distingue deux modèles. **L'application utilise désormais le bundle CS2CD par défaut** ; le modèle synthétique peut être sélectionné explicitement pour comparaison ou compatibilité.
 
 - **`cerveau_vac_custom.pkl`** : modèle physique synthétique de référence, entraîné sur des profils générés selon des plages biomécaniques définies par le projet. Il sert de baseline et n'est pas un modèle entraîné sur les matchs CS2CD.
-- **`cerveau_vac_cs2cd.pkl`** : modèle entraîné sur les données CS2CD étiquetées. Son bundle comprend le classifieur et le scaler, ainsi que les métadonnées d'entraînement, les informations de split et les métriques conservées lors de l'entraînement.
+- **`cerveau_vac_cs2cd.pkl`** : modèle entraîné sur les données CS2CD étiquetées. Son bundle auto-descriptif contient le classifieur et le scaler, le nom/révision du dataset, la version et l'empreinte du schéma de caractéristiques, les métadonnées d'entraînement, les métriques et les seuils calibrés.
 
-Le classifieur de l'application conserve le modèle synthétique comme modèle de référence par défaut. Un modèle CS2CD peut être sélectionné explicitement (`model_type="cs2cd"` ou chemin de modèle) et doit alors être disponible et valide : le pipeline ne le remplace pas silencieusement par le modèle synthétique.
+Les bundles sont validés avant utilisation (structure, caractéristiques et seuils) ; un bundle invalide n'est pas remplacé silencieusement par un autre modèle. La sélection du modèle est disponible via `--model-type cs2cd|synthetic|custom` et le chemin d'un modèle personnalisé via `--model`.
 
-Lorsqu'un bundle CS2CD contient un seuil `threshold` appris sur le jeu de validation, le classifieur l'utilise pour distinguer les niveaux de suspicion à l'exécution. En l'absence de seuil dans le bundle, les seuils de configuration existants s'appliquent.
+Le bundle CS2CD transporte les seuils `threshold_high` et `threshold_suspect`, calculés à partir de la validation et appliqués à l'exécution. En l'absence de ces métadonnées facultatives, les seuils de configuration s'appliquent.
 
 Le champ `suspicion_score` et la propriété `suspicion_scores` expriment des **scores combinés d'anomalie comportementale**, pas des probabilités calibrées. L'ancien nom de propriété `probabilities` est conservé comme alias de compatibilité, mais ses valeurs ne sont pas des probabilités. Un score, une étiquette `SUSPECT` ou une **suspicion élevée** doit toujours être confronté aux séquences du replay et à d'autres éléments.
 
@@ -106,6 +108,13 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
+Pour analyser une démo en mode console ou choisir explicitement un modèle :
+
+```bash
+python main.py --demo "CHEMIN\VERS\match.dem" --model-type cs2cd
+python main.py --version
+```
+
 ## Indexation et entraînement CS2CD
 
 Le dataset brut n'est pas distribué avec le dépôt. Obtenez-le séparément et placez les fichiers dans les dossiers `with_cheater_present` et `no_cheater_present`, avec les paires de fichiers Parquet et JSON attendues.
@@ -123,11 +132,19 @@ N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins l
 
 ## Tests
 
-La suite comprend **119 tests unitaires** ; sur la vérification de cette version, **117 réussissent et 2 sont ignorés**. Pour la relancer :
+Avant une publication, le contrôle complet de préparation vérifie les bundles, les contrats de données, les analyseurs, les contrôles système et la suite unitaire :
 
 ```bash
-python -m pytest tests/unit/
+python scripts/verify_release_ready.py
 ```
+
+Pour lancer séparément les tests unitaires :
+
+```bash
+python -m pytest tests/unit/ -q
+```
+
+Le script de vérification est le contrôle de référence ; le nombre de tests peut évoluer avec les contributions.
 
 ## Confidentialité et limites
 
