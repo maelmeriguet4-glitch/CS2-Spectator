@@ -165,12 +165,12 @@ def step_real_demo(with_demo: bool) -> bool:
 
 
 def step_cs2cd_fixtures() -> bool:
-    """Vérifie que le manifeste du dataset CS2CD est présent et exploitable."""
+    """Vérifie le manifeste CS2CD local lorsqu'il est disponible."""
     print(f"\n[8/{NOMBRE_ETAPES}] Vérification des fixtures CS2CD...")
     chemin = os.path.join(DIR_RACINE, "data", "anti_cheat_dataset.csv")
     if not os.path.isfile(chemin):
-        _enregistrer(8, "Vérification des fixtures CS2CD", "FAIL", f"{chemin} absent")
-        return False
+        _enregistrer(8, "Vérification des fixtures CS2CD", "SKIP", "manifeste local absent (facultatif)")
+        return True
     try:
         import pandas as pd
         df = pd.read_csv(chemin)

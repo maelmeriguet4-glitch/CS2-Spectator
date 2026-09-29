@@ -25,6 +25,7 @@
 
 - [Présentation](#présentation)
 - [Fonctionnalités](#fonctionnalités)
+- [Qualité et préparation des releases](#qualité-et-préparation-des-releases)
 - [Pipeline de données CS2CD](#pipeline-de-données-cs2cd)
 - [Étiquetage et protocole d'évaluation](#étiquetage-et-protocole-dévaluation)
 - [Modèles et interprétation des scores](#modèles-et-interprétation-des-scores)
@@ -52,6 +53,14 @@ L'analyse peut mettre en évidence des snaps et à-coups de visée, des enchaîn
 - **Exécution plus robuste** : détection des lecteurs disponibles, limitation des notifications répétées de démos, gestion du cycle de vie des analyses par lots et écritures atomiques du cache.
 - **Intégrité des analyses** : les états `ERROR` et `INSUFFICIENT_DATA` sont préservés ; une analyse incomplète reste signalée même si d'autres joueurs ont des signaux, et le moteur n'invente pas de violations quand les données ne permettent pas de conclure.
 - **Analyse d'occlusion prudente** : le suivi de cibles non visibles s'appuie sur un proxy géométrique, pas sur un ray-cast du moteur Source 2 ; il ne constitue pas une preuve de wallhack.
+
+## Qualité et préparation des releases
+
+La version applicative reste **2.5.2**. Les changements qui ont suivi cette release sont correctifs : nettoyage Ruff, correction d'une assertion de télémétrie et ajout de tests de régression P0. Ils ne constituent pas, à eux seuls, une nouvelle version fonctionnelle.
+
+Le contrôle `scripts/verify_release_ready.py` vérifie notamment la syntaxe, Ruff, les suites unitaires et E2E, les bundles ML, leur schéma, la CLI et le prérequis de build. La suite P0 regroupe des scénarios de robustesse et de validation des bundles ; elle ne constitue ni une certification ni une preuve que tous les cas réels sont couverts. La mention « release ready » décrit le résultat de ces contrôles automatisés, pas un audit indépendant ni une garantie d'absence d'anomalies. Les contrôles qui nécessitent une démo ou un build restent conditionnels. Le manifeste CS2CD local est facultatif : il n'est pas distribué avec le dépôt et son absence est signalée comme ignorée par le gate.
+
+Le workflow de release actuel construit sous Windows un exécutable PyInstaller **monofichier** `CS2_AntiCheat.exe` et ne publie que cet artefact. Le build embarque les bundles de modèles et le code applicatif ; il n'ajoute pas les rapports d'audit, journaux d'entraînement, scripts temporaires, manifestes locaux ni données brutes CS2CD. Les archives de la release v2.5.2 ont été produites par le workflow précédent en mode `onedir` : pour ces archives, extrayez et conservez le dossier complet, sans déplacer l'exécutable seul. La disposition des assets dépend donc de la release téléchargée.
 
 ## Pipeline de données CS2CD
 
@@ -95,9 +104,8 @@ La terminologie des résultats vise la prudence : **anomalie biomécanique**, **
 ### Pour les joueurs
 
 1. Ouvrez la page des [dernières Releases](https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases).
-2. Téléchargez `CS2-Spectator-windows.zip` sous Windows, ou `CS2-Spectator-linux.zip` / `CS2-Spectator-linux.tar.gz` sous Linux.
-3. Extrayez l'archive complète dans un dossier, puis lancez `CS2_AntiCheat.exe` (Windows) ou `CS2_AntiCheat/CS2_AntiCheat` (Linux) depuis ce dossier. Le paquet `onedir` inclut les deux bundles de modèles et ses dépendances : ne déplacez pas l'exécutable seul.
-4. Sélectionnez une démo `.dem` locale ou importez un replay Faceit.
+2. Choisissez un asset correspondant à votre système et à la release. Les archives `onedir` doivent être extraites intégralement et conservées dans leur dossier ; ne déplacez pas leur exécutable seul. Un exécutable monofichier peut être lancé directement.
+3. Sélectionnez une démo `.dem` locale ou importez un replay Faceit.
 
 ### Pour les développeurs
 
@@ -147,7 +155,7 @@ python -m pytest tests/unit/ -q
 python -m pytest tests/e2e/ -q
 ```
 
-Certaines vérifications réelles sont conditionnelles à des ressources locales non distribuées — démo de test, manifeste CS2CD, dataset ou build dans `dist/`. Pour ajouter l'analyse d'une démo et un build PyInstaller au gate, utilisez `python scripts/verify_release_ready.py --with-demo --with-build`. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
+Certaines vérifications réelles sont conditionnelles à des ressources locales non distribuées — démo de test ou build dans `dist/`. Le manifeste CS2CD local est facultatif et n'est pas requis par défaut. Pour ajouter l'analyse d'une démo et un build PyInstaller au gate, utilisez `python scripts/verify_release_ready.py --with-demo --with-build`. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
 
 ## Confidentialité et limites
 

@@ -31,6 +31,9 @@ features_cache.csv
 .agents/
 legacy_backup/
 *.log
+audit_results.txt
+train_log.txt
+apply_audit_fixes.py
 .DS_Store
 Thumbs.db
 

@@ -64,31 +64,28 @@ class TestPackagingUnit(unittest.TestCase):
 
     def test_build_exe_argument_construction(self):
         """Verify build_exe.get_pyinstaller_args generates all required flags."""
-        build_exe.get_pyinstaller_args(
+        args = build_exe.get_pyinstaller_args(
             target_script="main.py",
             app_name="CS2AntiCheat",
             model_file="cerveau_vac_custom.pkl",
             onefile=False,
         )
 
-        # args_str = " ".join(args)
-        # self.assertIn("--noconsole", args)
-        # self.assertIn("--noconfirm", args)
-        # self.assertIn("--clean", args)
-        # self.assertIn("--onedir", args)
-        # self.assertIn("--collect-all=customtkinter", args)
-        # self.assertIn("--collect-all=demoparser2", args)
-        # self.assertIn("cerveau_vac_custom.pkl", args_str)
+        self.assertIn("--noconsole", args)
+        self.assertIn("--noconfirm", args)
+        self.assertIn("--clean", args)
+        self.assertIn("--onedir", args)
+        self.assertIn("--collect-all=customtkinter", args)
+        self.assertIn("--collect-all=demoparser2", args)
+        self.assertIn("cerveau_vac_custom.pkl", " ".join(args))
 
-        # Check required hidden imports
         for hi in ["watchdog", "pyperclip", "sklearn", "joblib"]:
-            pass
-            # self.assertIn(f"--hidden-import={hi}", args)
+            self.assertIn(f"--hidden-import={hi}", args)
 
     def test_build_exe_argument_construction_onefile(self):
         """Verify build_exe.get_pyinstaller_args supports --onefile flag."""
         args = build_exe.get_pyinstaller_args(onefile=True)
-        # self.assertIn("--onefile", args)
+        self.assertIn("--onefile", args)
         self.assertNotIn("--onedir", args)
 
     def test_build_exe_environment_verification(self):
@@ -130,16 +127,15 @@ class TestPackagingUnit(unittest.TestCase):
             "pyinstaller",
         ]
         for pkg in required:
-            pass
-            # self.assertIn(pkg, package_names, f"Package '{pkg}' missing from requirements.txt")
+            self.assertIn(pkg, package_names, f"Package '{pkg}' missing from requirements.txt")
 
     def test_readme_documents_cs2cd_pipeline_and_release(self):
         """Verify README documents the CS2CD workflow, cautious scores, and releases."""
         readme_path = os.path.join(REPO_ROOT, "README.md")
         self.assertTrue(os.path.isfile(readme_path), "README.md must exist")
 
-        with open(readme_path, "r", encoding="utf-8"):
-            pass # content = f.read()
+        with open(readme_path, "r", encoding="utf-8") as f:
+            content = f.read()
 
         required_content = [
             "795 matchs",
@@ -147,7 +143,7 @@ class TestPackagingUnit(unittest.TestCase):
             "CS2CDAdapter",
             "PyArrow",
             "data/anti_cheat_dataset.example.csv",
-            "None",
+            "`unknown`",
             "`probable_non_cheater`",
             "44,4 %",
             "match_id:player_id",
@@ -163,13 +159,16 @@ class TestPackagingUnit(unittest.TestCase):
             "scripts/train_cs2cd.py",
             "scripts/verify_release_ready.py",
             "python -m pytest tests/unit/ -q",
-            "CS2-Spectator-windows.zip",
+            "Qualité et préparation des releases",
+            "monofichier",
+            "onedir",
+            "tests de régression P0",
+            "CS2_AntiCheat.exe",
             "2.5.2",
             "Signaler un problème",
         ]
         for item in required_content:
-            pass
-            # self.assertIn(item, content, f"README must document '{item}'")
+            self.assertIn(item, content, f"README must document '{item}'")
 
         self.assertTrue(os.path.isfile(os.path.join(REPO_ROOT, "logo.png")))
         self.assertTrue(
@@ -187,12 +186,28 @@ class TestPackagingUnit(unittest.TestCase):
 
         with open(os.path.join(REPO_ROOT, ".github", "workflows", "release.yml"), "r", encoding="utf-8") as f:
             workflow = f.read()
-        self.assertIn("CS2_AntiCheat.spec", workflow)
-        self.assertIn("CS2-Spectator-windows.zip", workflow)
-        self.assertIn("CS2-Spectator-linux.zip", workflow)
-        self.assertIn("CS2-Spectator-linux.tar.gz", workflow)
-        self.assertIn("exclude_binaries=True", spec)
-        self.assertIn("COLLECT(", spec)
+        self.assertIn("python build_exe.py --onefile", workflow)
+        self.assertIn("dist/CS2_AntiCheat.exe", workflow)
+        self.assertIn("actions/upload-artifact@v4", workflow)
+        self.assertIn("actions/download-artifact@v4", workflow)
+        self.assertIn("softprops/action-gh-release@v2", workflow)
+        self.assertNotIn("audit_results.txt", workflow)
+        self.assertNotIn("train_log.txt", workflow)
+        self.assertNotIn("apply_audit_fixes.py", workflow)
+        self.assertNotIn("*.parquet", workflow)
+        self.assertIn("name='CS2_AntiCheat'", spec)
+        self.assertNotIn("COLLECT(", spec)
+
+    def test_release_gate_skips_missing_local_cs2cd_manifest(self):
+        """The release gate must not require a private, untracked CS2CD manifest."""
+        from scripts import verify_release_ready
+
+        with patch("scripts.verify_release_ready.os.path.isfile", return_value=False):
+            with patch.object(verify_release_ready, "_enregistrer") as register:
+                self.assertTrue(verify_release_ready.step_cs2cd_fixtures())
+
+        register.assert_called_once()
+        self.assertEqual(register.call_args.args[2], "SKIP")
 
 
 if __name__ == "__main__":
