@@ -710,7 +710,7 @@ class TestTier5PackagingAndRuntimeReadiness(unittest.TestCase):
             timeout=30,
         )
         self.assertEqual(res.returncode, 0)
-        self.assertTrue("CS2 Anti-Cheat Replay Auditor v2.4.0" in res.stdout or "CS2 Anti-Cheat Replay Auditor v2.4.1" in res.stdout)
+        self.assertRegex(res.stdout, r"CS2 Anti-Cheat Replay Auditor v\d+\.\d+\.\d+")
 
 
 if __name__ == "__main__":

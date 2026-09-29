@@ -9,7 +9,7 @@ on:
       release_tag:
         description: "Tag of the existing GitHub release to replace assets for"
         required: true
-        default: "v2.4.0"
+        default: "v2.5.1"
         type: string
 
 permissions:
@@ -39,52 +39,33 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Build Windows executable
+      - name: Build application
         if: runner.os == 'Windows'
         shell: pwsh
-        run: >-
-          python -m PyInstaller --noconfirm --clean --onefile --windowed
-          --name CS2-Spectator
-          --collect-all customtkinter --collect-all demoparser2 --collect-all pyarrow
-          --hidden-import watchdog --hidden-import pyperclip --hidden-import sklearn
-          --hidden-import joblib --hidden-import pandas --hidden-import numpy
-          --hidden-import PIL --hidden-import darkdetect
-          --add-data "cerveau_vac_cs2cd.pkl;."
-          --add-data "src;src"
-          main.py
+        run: python -m PyInstaller --noconfirm --clean CS2_AntiCheat.spec
 
       - name: Package Windows release
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path dist\CS2-Spectator.exe -DestinationPath dist\CS2-Spectator-windows.zip
+        run: Compress-Archive -Path dist\CS2_AntiCheat -DestinationPath dist\CS2-Spectator-windows.zip
 
-      - name: Build Linux executable
+      - name: Build application
         if: runner.os == 'Linux'
-        run: >-
-          python -m PyInstaller --noconfirm --clean --onefile --windowed
-          --name CS2-Spectator
-          --collect-all customtkinter --collect-all demoparser2 --collect-all pyarrow
-          --hidden-import watchdog --hidden-import pyperclip --hidden-import sklearn
-          --hidden-import joblib --hidden-import pandas --hidden-import numpy
-          --hidden-import PIL --hidden-import darkdetect
-          --add-data "cerveau_vac_cs2cd.pkl:."
-          --add-data "src:src"
-          main.py
+        run: python -m PyInstaller --noconfirm --clean CS2_AntiCheat.spec
 
-      - name: Package Linux releases
+      - name: Package Linux release
         if: runner.os == 'Linux'
         run: |
-          chmod +x dist/CS2-Spectator
+          chmod +x dist/CS2_AntiCheat/CS2_AntiCheat
           cd dist
-          zip CS2-Spectator-linux.zip CS2-Spectator
-          tar -czf CS2-Spectator-linux.tar.gz CS2-Spectator
+          zip -r CS2-Spectator-linux.zip CS2_AntiCheat
+          tar -czf CS2-Spectator-linux.tar.gz CS2_AntiCheat
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ runner.os }}
           path: |
-            dist/CS2-Spectator.exe
             dist/CS2-Spectator-windows.zip
             dist/CS2-Spectator-linux.zip
             dist/CS2-Spectator-linux.tar.gz
