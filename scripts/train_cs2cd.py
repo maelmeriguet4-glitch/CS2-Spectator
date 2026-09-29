@@ -41,7 +41,7 @@ from src.ml.cs2cd_adapter import CS2CDAdapter
 DEFAULT_MANIFEST = os.path.join("data", "anti_cheat_dataset.csv")
 DEFAULT_MODEL_OUT = "cerveau_vac_cs2cd.pkl"
 DEFAULT_CACHE = os.path.join("data", "features_cache.csv")
-MODEL_VERSION = "2.5.2"
+MODEL_VERSION = "2.5.3"
 
 
 def compute_strong_cache_hash(manifest_path: str) -> str:

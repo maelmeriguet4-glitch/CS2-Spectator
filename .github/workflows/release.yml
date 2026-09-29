@@ -19,51 +19,39 @@ jobs:
   validate:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.14' # Use actual version
+          python-version: "3.11"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install mypy
       - name: Run Release Gate (Strict)
         run: |
-          python scripts/verify_release_ready.py
-
-  build:
-    needs: validate
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.14'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
-      - name: Build executable
-        run: python build_exe.py --onefile
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+          python scripts/verify_release_ready.py --with-demo --with-build
+      - name: Upload validated build
+        uses: actions/upload-artifact@v4
         with:
           name: CS2_AntiCheat
           path: dist/CS2_AntiCheat.exe
+          if-no-files-found: error
 
   publish:
-    needs: build
+    needs: validate
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
           name: CS2_AntiCheat
-          path: dist
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+          path: release-assets
+      - name: Publish release asset
+        uses: softprops/action-gh-release@v2
         with:
-          files: dist/CS2_AntiCheat.exe
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          files: release-assets/CS2_AntiCheat.exe
+          overwrite_files: true
+          fail_on_unmatched_files: true

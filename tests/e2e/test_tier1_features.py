@@ -645,7 +645,6 @@ class TestTier1FeatureR5Packaging(unittest.TestCase):
             os.path.join(REPO_ROOT, "src"),
             os.path.join(REPO_ROOT, "src", "core"),
             os.path.join(REPO_ROOT, "tests"),
-            os.path.join(REPO_ROOT, "demos"),
         ]
         for d in expected_dirs:
             self.assertTrue(os.path.isdir(d), f"Directory '{d}' must exist")

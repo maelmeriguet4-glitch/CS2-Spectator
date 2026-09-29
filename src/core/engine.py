@@ -185,6 +185,7 @@ class AntiCheatEngine:
                 triggerbot_metrics=tb_metrics,
                 suspicion_score=ml_result.suspicion_score,
                 verdict=ml_result.verdict,
+                analysis_status=ml_result.analysis_status,
                 violation_flags=ml_result.violation_flags,
                 combat_events=combat_events,
             )
@@ -224,6 +225,7 @@ class AntiCheatEngine:
         cheaters = [p for p in analyzed_players if p.verdict == "CHEATER"]
         suspects = [p for p in analyzed_players if p.verdict == "SUSPECT"]
         errors = [p for p in analyzed_players if p.verdict == "ERROR"]
+        insufficient = [p for p in analyzed_players if p.verdict == "INSUFFICIENT_DATA"]
 
         if cheaters:
             names_cheaters = ", ".join([p.name for p in cheaters[:3]])
@@ -236,11 +238,17 @@ class AntiCheatEngine:
         else:
             global_verdict = "AUCUN SIGNAL FORT DÉTECTÉ"
 
-        if errors:
+        if errors or insufficient:
+            incomplete_reasons = []
+            if errors:
+                incomplete_reasons.append(f"{len(errors)} ERREUR(S) D'ANALYSE")
+            if insufficient:
+                incomplete_reasons.append(f"{len(insufficient)} DONNÉE(S) INSUFFISANTE(S)")
+            incomplete = " ; ".join(incomplete_reasons)
             if cheaters or suspects:
-                global_verdict += f" [MATCH INCOMPLET: {len(errors)} ERREUR(S)]"
+                global_verdict += f" [MATCH INCOMPLET: {incomplete}]"
             else:
-                global_verdict = f"MATCH INCOMPLET ({len(errors)} ERREUR(S) D\'ANALYSE)"
+                global_verdict = f"MATCH INCOMPLET ({incomplete})"
 
         _report(1.0, f"Analyse terminée avec succès. Verdict : {global_verdict}")
 
@@ -253,7 +261,7 @@ class AntiCheatEngine:
             players=analyzed_players,
             global_verdict=global_verdict,
             model_type=getattr(self.classifier, "dataset_name", "cs2cd"),
-            model_version=getattr(self.classifier, "dataset_revision", "2.5.2"),
+            model_version=getattr(self.classifier, "dataset_revision", "2.5.3"),
             feature_schema_version=getattr(self.config, "feature_schema_version", "1.0"),
         )
 

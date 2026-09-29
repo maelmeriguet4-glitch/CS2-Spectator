@@ -143,7 +143,7 @@ class ReportModal(ctk.CTkToplevel):
                     import os
                     demo_text_val = os.path.basename(demo_path)
             demo_text_val = demo_text_val or "N/A"
-        
+
         demo_text = demo_text_val or "N/A"
 
 
@@ -586,7 +586,7 @@ class ReportModal(ctk.CTkToplevel):
         flags_str = " ".join(p.violation_flags).upper()
 
         # Definitions of the 5 cheat cards:
-        cheats_config = [
+        cheats_config: list[dict[str, Any]] = [
             {
                 "title": "🎯 AIMBOT & VISÉE ROBOTIQUE",
                 "accent_color": THEME["cheat_aimbot"],

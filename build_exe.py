@@ -10,8 +10,12 @@ import sys
 
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+        stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+        if stdout_reconfigure is not None:
+            stdout_reconfigure(encoding="utf-8")
+        if stderr_reconfigure is not None:
+            stderr_reconfigure(encoding="utf-8")
     except Exception:
         pass
 

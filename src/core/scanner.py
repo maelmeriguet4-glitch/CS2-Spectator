@@ -320,9 +320,9 @@ class ReplayScanner:
                 try:
                     with open(info_path, "rb") as f:
                         data = f.read(8192)
-                    match = re.search(rb"(de_[a-zA-Z0-9_]+|cs_[a-zA-Z0-9_]+)", data)
-                    if match:
-                        map_name = match.group(0).decode("utf-8", errors="ignore")
+                    info_match = re.search(rb"(de_[a-zA-Z0-9_]+|cs_[a-zA-Z0-9_]+)", data)
+                    if info_match:
+                        map_name = info_match.group(0).decode("utf-8", errors="ignore")
                 except Exception as _e:
                         import logging
                         logging.debug(f"Ignored error: {_e}")
@@ -330,9 +330,9 @@ class ReplayScanner:
         # Method 3: Filename pattern matching
         if not map_name:
             base_name = os.path.basename(file_path)
-            match = re.search(r"(de_[a-zA-Z0-9_]+|cs_[a-zA-Z0-9_]+)", base_name, re.IGNORECASE)
-            if match:
-                map_name = match.group(0).lower()
+            filename_match = re.search(r"(de_[a-zA-Z0-9_]+|cs_[a-zA-Z0-9_]+)", base_name, re.IGNORECASE)
+            if filename_match:
+                map_name = filename_match.group(0).lower()
 
         return map_name, server_name
 

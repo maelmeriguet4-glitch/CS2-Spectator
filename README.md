@@ -6,7 +6,7 @@
   <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
   <p>
-    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.2-4263EB?style=for-the-badge" alt="Version 2.5.2"></a>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/github/v/release/maelmeriguet4-glitch/CS2-Spectator?style=for-the-badge&color=4263EB" alt="Dernière release"></a>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
     <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
     <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
@@ -25,6 +25,7 @@
 
 - [Présentation](#présentation)
 - [Fonctionnalités](#fonctionnalités)
+- [Qualité et préparation des releases](#qualité-et-préparation-des-releases)
 - [Pipeline de données CS2CD](#pipeline-de-données-cs2cd)
 - [Étiquetage et protocole d'évaluation](#étiquetage-et-protocole-dévaluation)
 - [Modèles et interprétation des scores](#modèles-et-interprétation-des-scores)
@@ -52,6 +53,14 @@ L'analyse peut mettre en évidence des snaps et à-coups de visée, des enchaîn
 - **Exécution plus robuste** : détection des lecteurs disponibles, limitation des notifications répétées de démos, gestion du cycle de vie des analyses par lots et écritures atomiques du cache.
 - **Intégrité des analyses** : les états `ERROR` et `INSUFFICIENT_DATA` sont préservés ; une analyse incomplète reste signalée même si d'autres joueurs ont des signaux, et le moteur n'invente pas de violations quand les données ne permettent pas de conclure.
 - **Analyse d'occlusion prudente** : le suivi de cibles non visibles s'appuie sur un proxy géométrique, pas sur un ray-cast du moteur Source 2 ; il ne constitue pas une preuve de wallhack.
+
+## Qualité et préparation des releases
+
+La dernière release publiée reste **v2.5.2**. Les changements fonctionnels intégrés depuis celle-ci préparent la version applicative **2.5.3** : verdict canonique partagé (`CLEAN`, `SUSPECT`, `CHEATER`), refus de fabriquer des métriques manquantes pour le classifieur, validation plus stricte des bundles ML et gestion plus robuste des files d'attente. Les résultats signalent séparément les données insuffisantes ; les scores et verdicts restent des outils d'examen humain, pas des preuves de triche.
+
+Le contrôle `scripts/verify_release_ready.py` vérifie la syntaxe, Ruff, Mypy, les suites unitaires et E2E, les bundles ML, leur schéma, la CLI et le packaging. Une validation complète requiert une démo locale `demos/test.dem` et un build PyInstaller ; lancez `python scripts/verify_release_ready.py --with-demo --with-build` depuis un environnement qui dispose de ces ressources. Le manifeste CS2CD local est facultatif. La suite P0 et la mention « READY FOR RELEASE » décrivent des contrôles automatisés, pas une certification, un audit indépendant ni une garantie d'absence d'anomalies.
+
+Le workflow construit sous Windows un exécutable PyInstaller **monofichier** `CS2_AntiCheat.exe` et publie cet artefact. La release existante v2.5.2 contient les anciens paquets `onedir` : extrayez-les intégralement et conservez leur dossier. Une future release 2.5.3 utilisera l'asset Windows monofichier du workflow actuel ; aucun paquet Linux n'est produit par ce workflow. Les builds n'incluent pas les rapports d'audit, journaux d'entraînement, scripts temporaires, manifestes locaux ni données brutes CS2CD.
 
 ## Pipeline de données CS2CD
 
@@ -95,9 +104,8 @@ La terminologie des résultats vise la prudence : **anomalie biomécanique**, **
 ### Pour les joueurs
 
 1. Ouvrez la page des [dernières Releases](https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases).
-2. Téléchargez `CS2-Spectator-windows.zip` sous Windows, ou `CS2-Spectator-linux.zip` / `CS2-Spectator-linux.tar.gz` sous Linux.
-3. Extrayez l'archive complète dans un dossier, puis lancez `CS2_AntiCheat.exe` (Windows) ou `CS2_AntiCheat/CS2_AntiCheat` (Linux) depuis ce dossier. Le paquet `onedir` inclut les deux bundles de modèles et ses dépendances : ne déplacez pas l'exécutable seul.
-4. Sélectionnez une démo `.dem` locale ou importez un replay Faceit.
+2. Choisissez un asset correspondant à votre système et à la release. Les archives `onedir` doivent être extraites intégralement et conservées dans leur dossier ; ne déplacez pas leur exécutable seul. Un exécutable monofichier peut être lancé directement.
+3. Sélectionnez une démo `.dem` locale ou importez un replay Faceit.
 
 ### Pour les développeurs
 
@@ -134,10 +142,10 @@ N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins l
 
 ## Tests
 
-Le contrôle de préparation de release vérifie la syntaxe, Ruff, les suites unitaires et E2E, les bundles ML, le schéma de caractéristiques, le packaging et la CLI. Exécutez-le depuis la racine du dépôt :
+Le contrôle de préparation de release vérifie la syntaxe, Ruff, Mypy, les suites unitaires et E2E, les bundles ML, le schéma de caractéristiques, le packaging et la CLI. Une validation complète nécessite le fichier de démonstration local `demos/test.dem` (non distribué) et la construction PyInstaller :
 
 ```bash
-python scripts/verify_release_ready.py
+python scripts/verify_release_ready.py --with-demo --with-build
 ```
 
 Les tests peuvent aussi être lancés séparément :
@@ -147,7 +155,7 @@ python -m pytest tests/unit/ -q
 python -m pytest tests/e2e/ -q
 ```
 
-Certaines vérifications réelles sont conditionnelles à des ressources locales non distribuées — démo de test, manifeste CS2CD, dataset ou build dans `dist/`. Pour ajouter l'analyse d'une démo et un build PyInstaller au gate, utilisez `python scripts/verify_release_ready.py --with-demo --with-build`. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
+Le manifeste CS2CD local est facultatif. Le workflow de release lance le même gate strict ; sans démo de test accessible à son runner, la validation échoue et la publication est bloquée. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
 
 ## Confidentialité et limites
 

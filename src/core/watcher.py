@@ -7,17 +7,21 @@ Compatible FR (dossier/callback/demarrer) + EN (target_dir/on_new_replay_callbac
 import os
 import threading
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+ReplayInfo: Any = None
+ReplayScanner: Any = None
 try:
-    from src.core.models import ReplayInfo
-    from src.core.scanner import ReplayScanner
+    from src.core.models import ReplayInfo as _ReplayInfo
+    from src.core.scanner import ReplayScanner as _ReplayScanner
+
+    ReplayInfo = _ReplayInfo
+    ReplayScanner = _ReplayScanner
 except Exception:
-    ReplayInfo: type | None = None
-    ReplayScanner: type | None = None
+    pass
 
 SOURCE2_MAGIC = b"PBDEMS2\x00"
 

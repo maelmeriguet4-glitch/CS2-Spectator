@@ -190,7 +190,7 @@ def valider_bundle_modele(paquet: Any) -> bool:
         raise ValueError(f"Dimensions du modèle invalides: attendu {expected_features}")
     if not hasattr(scaler, "n_features_in_") or scaler.n_features_in_ != expected_features:
         raise ValueError(f"Dimensions du scaler invalides: attendu {expected_features}")
-    
+
     if hasattr(modele, "classes_"):
         classes = list(modele.classes_)
         if classes != [0, 1] and classes != ["0", "1"]:
@@ -204,7 +204,7 @@ def valider_bundle_modele(paquet: Any) -> bool:
             f"({NOMS_FEATURES}), reçu {len(noms) if noms else 0} ({list(noms) if noms else []})."
         )
     paquet["noms_features"] = list(NOMS_FEATURES)
-    
+
     val_haut = paquet.get("threshold_high", paquet.get("threshold", 0.0))
     seuil_haut = float(val_haut if val_haut is not None else 0.0)
     val_susp = paquet.get("threshold_suspect", 0.0)
@@ -611,7 +611,7 @@ class CheatClassifier:
         h.update(str(self.threshold_high).encode())
         h.update(str(self.threshold_suspect).encode())
         h.update(FEATURE_SCHEMA_HASH.encode())
-        
+
         # Check for bundle file hash if possible
         if self.model_path and os.path.exists(self.model_path):
             with open(self.model_path, 'rb') as f:
@@ -624,7 +624,7 @@ class CheatClassifier:
             bio = io.BytesIO()
             joblib.dump(self._bundle, bio)
             h.update(bio.getvalue())
-            
+
         return h.hexdigest()[:16]
 
 

@@ -4,7 +4,9 @@ using standard unittest.
 """
 
 import unittest
+from types import SimpleNamespace
 from typing import List, Tuple
+from unittest.mock import patch
 
 from src.core.engine import AntiCheatEngine
 from src.core.models import MatchAnalysisResult
@@ -45,6 +47,11 @@ class TestCheatClassifier(unittest.TestCase):
         self.assertIsNotNone(classifier.model)
         self.assertEqual(len(classifier.feature_names), 15)
         self.assertEqual(classifier.feature_names, FEATURE_NAMES)
+
+    def test_missing_profiles_return_unavailable(self):
+        result = CheatClassifier().predict()
+        self.assertEqual(result.verdict, "UNAVAILABLE")
+        self.assertEqual(result.analysis_status, "insufficient_data")
 
     def test_feature_vector_extraction(self):
         aim = make_aim({"aim_vitesse_max": 15.0, "aim_p99": 4.5})
@@ -169,6 +176,46 @@ class TestAntiCheatEngine(unittest.TestCase):
         self.assertGreaterEqual(len(progress_log), 5)
         self.assertEqual(progress_log[0][0], 0.05)
         self.assertEqual(progress_log[-1][0], 1.0)
+
+    def test_insufficient_classifier_result_remains_incomplete(self):
+        demo = SimpleNamespace(
+            is_valid=True,
+            map_name="de_mock",
+            server_name="mock",
+            ticks=[],
+            players=[],
+            get_all_players=lambda: [{"steamid": "76561198000000001", "name": "Player", "team_number": 2}],
+            total_ticks=64,
+            duration_seconds=1.0,
+        )
+        analysis = SimpleNamespace(
+            metrics={},
+            flagged_snaps=[],
+            flagged_chains=[],
+            flagged_locks=[],
+            flagged_events=[],
+        )
+        classifier_result = ClassificationResult(
+            verdict="UNAVAILABLE",
+            suspicion_score=0.0,
+            display_verdict="Details unavailable",
+            analysis_status="insufficient_data",
+        )
+        engine = AntiCheatEngine(use_cache=False)
+
+        with patch("src.core.engine.load_demo", return_value=demo):
+            with patch.object(engine.classifier, "predict", return_value=classifier_result):
+                with patch("src.core.engine.analyze_aimbot", return_value=analysis):
+                    with patch("src.core.engine.analyze_bhop", return_value=analysis):
+                        with patch("src.core.engine.analyze_wallhack", return_value=analysis):
+                            with patch("src.core.engine.analyze_spinbot", return_value=analysis):
+                                with patch("src.core.engine.analyze_triggerbot", return_value=analysis):
+                                    result = engine.analyze_demo("mock.dem")
+
+        self.assertEqual(result.players[0].verdict, "INSUFFICIENT_DATA")
+        self.assertEqual(result.players[0].analysis_status, "insufficient_data")
+        self.assertIn("MATCH INCOMPLET", result.global_verdict)
+        self.assertIn("INSUFFISANTE", result.global_verdict)
 
     def test_anticheat_engine_invalid_demo(self):
         engine = AntiCheatEngine()
