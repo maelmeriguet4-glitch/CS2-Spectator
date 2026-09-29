@@ -4,6 +4,7 @@ and demoparser2 pipeline wrapper using standard unittest.
 """
 
 import unittest
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -30,7 +31,12 @@ from tests.conftest import TEST_DEMO_PATH, has_test_demo
 class MockDemoData:
     """Lightweight in-memory mock of DemoData for deterministic unit testing."""
 
-    def __init__(self, ticks: pd.DataFrame, weapon_fire: pd.DataFrame = None, players: list = None):
+    def __init__(
+        self,
+        ticks: pd.DataFrame,
+        weapon_fire: Optional[pd.DataFrame] = None,
+        players: Optional[list] = None,
+    ):
         self.is_valid = True
         self.valide = True
         self.ticks = ticks

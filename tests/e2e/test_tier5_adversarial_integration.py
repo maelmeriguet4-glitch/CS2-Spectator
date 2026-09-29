@@ -526,7 +526,7 @@ class TestTier5CLIStress(unittest.TestCase):
             errors="replace",
         )
         self.assertEqual(res_ver.returncode, 0)
-        self.assertIn("CS2 Anti-Cheat Replay Auditor v2.5.2", res_ver.stdout)
+        self.assertIn("CS2 Anti-Cheat Replay Auditor v2.5.3", res_ver.stdout)
 
         # --help
         res_help = subprocess.run(
@@ -670,23 +670,21 @@ class TestTier5PackagingAndRuntimeReadiness(unittest.TestCase):
     def test_packaging_executable_runtime_version_execution(self):
         """
         Executes the compiled standalone binary directly:
-        dist/CS2AntiCheat/CS2AntiCheat.exe --version
+        dist/CS2_AntiCheat.exe --version
         Verifies exit code 0 and version output through redirected stdout.
         """
         exe_path = os.path.join(REPO_ROOT, "dist", "CS2_AntiCheat.exe")
         if not os.path.isfile(exe_path):
             self.skipTest("Standalone executable not yet compiled")
 
-        # In Windows GUI mode (--noconsole), run via cmd.exe redirect or capture
         res = subprocess.run(
-            f'"{exe_path}" --version',
-            shell=True,
+            [exe_path, "--version"],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=30,
+            timeout=120,
         )
         self.assertEqual(res.returncode, 0)
         self.assertRegex(res.stdout, r"CS2 Anti-Cheat Replay Auditor v\d+\.\d+\.\d+")

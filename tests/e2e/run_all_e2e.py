@@ -26,8 +26,12 @@ if REPO_ROOT not in sys.path:
 # Configure UTF-8 for Windows console
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+        stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+        if stdout_reconfigure is not None:
+            stdout_reconfigure(encoding="utf-8", errors="replace")
+        if stderr_reconfigure is not None:
+            stderr_reconfigure(encoding="utf-8", errors="replace")
     except Exception as _e:
             import logging
             logging.debug(f"Ignored error: {_e}")

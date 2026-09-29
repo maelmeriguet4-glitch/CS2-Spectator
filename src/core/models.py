@@ -159,15 +159,15 @@ class PlayerTelemetry:
 class MatchAnalysisResult:
     """Aggregated analysis report for an entire Counter-Strike 2 match demo."""
     demo_path: str
-    map_name: str
-    server_name: str
+    map_name: Optional[str]
+    server_name: Optional[str]
     total_ticks: int
     duration_seconds: float
     players: List[PlayerTelemetry]
     global_verdict: str
-    engine_version: str = "2.5.2"
+    engine_version: str = "2.5.3"
     model_type: str = "cs2cd"
-    model_version: str = "2.5.2"
+    model_version: str = "2.5.3"
     feature_schema_version: str = "1.0"
 
     def to_dict(self) -> Dict[str, Any]:

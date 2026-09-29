@@ -6,7 +6,7 @@
   <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
   <p>
-    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.2-4263EB?style=for-the-badge" alt="Version 2.5.2"></a>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/github/v/release/maelmeriguet4-glitch/CS2-Spectator?style=for-the-badge&color=4263EB" alt="Dernière release"></a>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
     <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
     <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
@@ -56,11 +56,11 @@ L'analyse peut mettre en évidence des snaps et à-coups de visée, des enchaîn
 
 ## Qualité et préparation des releases
 
-La version applicative reste **2.5.2**. Les changements qui ont suivi cette release sont correctifs : nettoyage Ruff, correction d'une assertion de télémétrie et ajout de tests de régression P0. Ils ne constituent pas, à eux seuls, une nouvelle version fonctionnelle.
+La dernière release publiée reste **v2.5.2**. Les changements fonctionnels intégrés depuis celle-ci préparent la version applicative **2.5.3** : verdict canonique partagé (`CLEAN`, `SUSPECT`, `CHEATER`), refus de fabriquer des métriques manquantes pour le classifieur, validation plus stricte des bundles ML et gestion plus robuste des files d'attente. Les résultats signalent séparément les données insuffisantes ; les scores et verdicts restent des outils d'examen humain, pas des preuves de triche.
 
-Le contrôle `scripts/verify_release_ready.py` vérifie notamment la syntaxe, Ruff, les suites unitaires et E2E, les bundles ML, leur schéma, la CLI et le prérequis de build. La suite P0 regroupe des scénarios de robustesse et de validation des bundles ; elle ne constitue ni une certification ni une preuve que tous les cas réels sont couverts. La mention « release ready » décrit le résultat de ces contrôles automatisés, pas un audit indépendant ni une garantie d'absence d'anomalies. Les contrôles qui nécessitent une démo ou un build restent conditionnels. Le manifeste CS2CD local est facultatif : il n'est pas distribué avec le dépôt et son absence est signalée comme ignorée par le gate.
+Le contrôle `scripts/verify_release_ready.py` vérifie la syntaxe, Ruff, Mypy, les suites unitaires et E2E, les bundles ML, leur schéma, la CLI et le packaging. Une validation complète requiert une démo locale `demos/test.dem` et un build PyInstaller ; lancez `python scripts/verify_release_ready.py --with-demo --with-build` depuis un environnement qui dispose de ces ressources. Le manifeste CS2CD local est facultatif. La suite P0 et la mention « READY FOR RELEASE » décrivent des contrôles automatisés, pas une certification, un audit indépendant ni une garantie d'absence d'anomalies.
 
-Le workflow de release actuel construit sous Windows un exécutable PyInstaller **monofichier** `CS2_AntiCheat.exe` et ne publie que cet artefact. Le build embarque les bundles de modèles et le code applicatif ; il n'ajoute pas les rapports d'audit, journaux d'entraînement, scripts temporaires, manifestes locaux ni données brutes CS2CD. Les archives de la release v2.5.2 ont été produites par le workflow précédent en mode `onedir` : pour ces archives, extrayez et conservez le dossier complet, sans déplacer l'exécutable seul. La disposition des assets dépend donc de la release téléchargée.
+Le workflow construit sous Windows un exécutable PyInstaller **monofichier** `CS2_AntiCheat.exe` et publie cet artefact. La release existante v2.5.2 contient les anciens paquets `onedir` : extrayez-les intégralement et conservez leur dossier. Une future release 2.5.3 utilisera l'asset Windows monofichier du workflow actuel ; aucun paquet Linux n'est produit par ce workflow. Les builds n'incluent pas les rapports d'audit, journaux d'entraînement, scripts temporaires, manifestes locaux ni données brutes CS2CD.
 
 ## Pipeline de données CS2CD
 
@@ -142,10 +142,10 @@ N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins l
 
 ## Tests
 
-Le contrôle de préparation de release vérifie la syntaxe, Ruff, les suites unitaires et E2E, les bundles ML, le schéma de caractéristiques, le packaging et la CLI. Exécutez-le depuis la racine du dépôt :
+Le contrôle de préparation de release vérifie la syntaxe, Ruff, Mypy, les suites unitaires et E2E, les bundles ML, le schéma de caractéristiques, le packaging et la CLI. Une validation complète nécessite le fichier de démonstration local `demos/test.dem` (non distribué) et la construction PyInstaller :
 
 ```bash
-python scripts/verify_release_ready.py
+python scripts/verify_release_ready.py --with-demo --with-build
 ```
 
 Les tests peuvent aussi être lancés séparément :
@@ -155,7 +155,7 @@ python -m pytest tests/unit/ -q
 python -m pytest tests/e2e/ -q
 ```
 
-Certaines vérifications réelles sont conditionnelles à des ressources locales non distribuées — démo de test ou build dans `dist/`. Le manifeste CS2CD local est facultatif et n'est pas requis par défaut. Pour ajouter l'analyse d'une démo et un build PyInstaller au gate, utilisez `python scripts/verify_release_ready.py --with-demo --with-build`. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
+Le manifeste CS2CD local est facultatif. Le workflow de release lance le même gate strict ; sans démo de test accessible à son runner, la validation échoue et la publication est bloquée. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
 
 ## Confidentialité et limites
 

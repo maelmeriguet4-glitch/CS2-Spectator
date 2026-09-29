@@ -7,7 +7,7 @@ en exposant strictement l'interface attendue par les analyseurs de CS2 Spectator
 import json
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -42,7 +42,7 @@ class CS2CDAdapter:
         self.chemin_demo = demo_table_path
         self.chemin_json = json_path
         self.valide = False
-        self.format_source = None
+        self.format_source: Optional[str] = None
         self.header: Dict[str, Any] = {
             "map_name": None,
             "server_name": "CS2CD_Dataset",
@@ -253,7 +253,7 @@ class CS2CDAdapter:
         return self.chemin_demo
 
     @property
-    def map_name(self) -> str:
+    def map_name(self) -> Optional[str]:
         return self.header.get("map_name") or None
 
     @property

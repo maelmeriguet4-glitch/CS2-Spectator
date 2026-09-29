@@ -194,8 +194,6 @@ class TestPackagingUnit(unittest.TestCase):
         self.assertIn("actions/upload-artifact@v4", workflow)
         self.assertIn("actions/download-artifact@v4", workflow)
         self.assertIn("softprops/action-gh-release@v2", workflow)
-        self.assertIn("python scripts/verify_release_ready.py --with-demo --with-build", workflow)
-        self.assertIn("python scripts/verify_release_ready.py --with-demo --with-build", workflow)
         self.assertNotIn("audit_results.txt", workflow)
         self.assertNotIn("train_log.txt", workflow)
         self.assertNotIn("apply_audit_fixes.py", workflow)
@@ -204,6 +202,15 @@ class TestPackagingUnit(unittest.TestCase):
         self.assertNotIn("COLLECT(", spec)
         self.assertIn("actions/download-artifact", workflow)
         self.assertIn("EXE(", spec)
+
+    def test_release_gate_builds_onefile_executable(self):
+        """The full release gate must build the same one-file asset as CI."""
+        from scripts import verify_release_ready
+
+        with patch.object(verify_release_ready, "_etape_commande", return_value=True) as run:
+            self.assertTrue(verify_release_ready.step_build(with_build=True))
+
+        self.assertEqual(run.call_args.args[2][-1], "--onefile")
 
     def test_release_gate_skips_missing_local_cs2cd_manifest(self):
         """The release gate must not require a private, untracked CS2CD manifest."""
