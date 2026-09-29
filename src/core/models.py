@@ -165,9 +165,9 @@ class MatchAnalysisResult:
     duration_seconds: float
     players: List[PlayerTelemetry]
     global_verdict: str
-    engine_version: str = "2.4.2"
+    engine_version: str = "2.5.2"
     model_type: str = "cs2cd"
-    model_version: str = "2.4.2"
+    model_version: str = "2.5.2"
     feature_schema_version: str = "1.0"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -195,8 +195,8 @@ class MatchAnalysisResult:
             duration_seconds=data.get("duration_seconds", 0.0),
             players=[PlayerTelemetry.from_dict(p) for p in data.get("players", [])],
             global_verdict=data.get("global_verdict", "AUCUN SIGNAL FORT DÉTECTÉ"),
-            engine_version=data.get("engine_version", "2.4.2"),
+            engine_version=data.get("engine_version", "2.5.2"),
             model_type=data.get("model_type", "cs2cd"),
-            model_version=data.get("model_version", "2.4.2"),
+            model_version=data.get("model_version", "2.5.2"),
             feature_schema_version=data.get("feature_schema_version", "1.0"),
         )

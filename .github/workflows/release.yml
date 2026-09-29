@@ -3,7 +3,17 @@ name: Release Pipeline
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag of the existing GitHub release to replace assets for"
+        required: true
+        default: "v2.5.2"
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   validate:
