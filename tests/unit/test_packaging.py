@@ -159,10 +159,10 @@ class TestPackagingUnit(unittest.TestCase):
             "`--model-type cs2cd|synthetic|custom`",
             "scripts/index_cs2cd.py",
             "scripts/train_cs2cd.py",
-            "python -m pytest tests/unit/",
-            "120 tests unitaires",
-            "120 réussissent et aucun n'est ignoré",
-            "2.4.1",
+            "scripts/verify_release_ready.py",
+            "python -m pytest tests/unit/ -q",
+            "CS2-Spectator-windows.zip",
+            "2.5.2",
             "Signaler un problème",
         ]
         for item in required_content:
@@ -175,6 +175,21 @@ class TestPackagingUnit(unittest.TestCase):
         self.assertTrue(
             os.path.isfile(os.path.join(REPO_ROOT, ".github", "ISSUE_TEMPLATE", "bug_report.yml"))
         )
+
+        with open(os.path.join(REPO_ROOT, "CS2_AntiCheat.spec"), "r", encoding="utf-8") as f:
+            spec = f.read()
+        self.assertIn("cerveau_vac_cs2cd.pkl", spec)
+        self.assertIn("cerveau_vac_custom.pkl", spec)
+        self.assertIn("('src', 'src')", spec)
+
+        with open(os.path.join(REPO_ROOT, ".github", "workflows", "release.yml"), "r", encoding="utf-8") as f:
+            workflow = f.read()
+        self.assertIn("CS2_AntiCheat.spec", workflow)
+        self.assertIn("CS2-Spectator-windows.zip", workflow)
+        self.assertIn("CS2-Spectator-linux.zip", workflow)
+        self.assertIn("CS2-Spectator-linux.tar.gz", workflow)
+        self.assertIn("exclude_binaries=True", spec)
+        self.assertIn("COLLECT(", spec)
 
 
 if __name__ == "__main__":

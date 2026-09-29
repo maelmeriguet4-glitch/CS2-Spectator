@@ -253,7 +253,7 @@ class AntiCheatEngine:
             players=analyzed_players,
             global_verdict=global_verdict,
             model_type=getattr(self.classifier, "dataset_name", "cs2cd"),
-            model_version=getattr(self.classifier, "dataset_revision", "2.4.1"),
+            model_version=getattr(self.classifier, "dataset_revision", "2.5.2"),
             feature_schema_version=getattr(self.config, "feature_schema_version", "1.0"),
         )
 

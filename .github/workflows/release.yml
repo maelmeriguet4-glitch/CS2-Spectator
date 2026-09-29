@@ -9,7 +9,7 @@ on:
       release_tag:
         description: "Tag of the existing GitHub release to replace assets for"
         required: true
-        default: "v2.5.1"
+        default: "v2.5.2"
         type: string
 
 permissions:

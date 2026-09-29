@@ -6,7 +6,7 @@
   <p>Des indicateurs à examiner, pas des verdicts automatiques.</p>
 
   <p>
-    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.1-4263EB?style=for-the-badge" alt="Version 2.5.1"></a>
+    <a href="https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases/latest"><img src="https://img.shields.io/badge/version-2.5.2-4263EB?style=for-the-badge" alt="Version 2.5.2"></a>
     <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+">
     <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-2DA44E?style=for-the-badge" alt="Licence MIT"></a>
     <img src="https://img.shields.io/badge/Windows-Linux-informational?style=for-the-badge" alt="Windows et Linux">
@@ -49,8 +49,9 @@ L'analyse peut mettre en évidence des snaps et à-coups de visée, des enchaîn
 - **Import Faceit** : consultation de matchs et téléchargement sécurisé des démos depuis l'API Faceit ; seuls les schémas HTTP(S) sont autorisés.
 - **Aide au signalement** : rapports textuels structurés pour accompagner un examen humain.
 - **Recherche reproductible** : outils d'indexation, d'extraction de caractéristiques et d'entraînement avec CS2CD, y compris des sources Parquet et CSV compressées.
-- **Exécution plus robuste** : détection des lecteurs disponibles, limitation des notifications répétées de démos, gestion du cycle de vie des analyses par lots et cache amélioré.
-- **Intégrité des analyses** : les états `ERROR` et `INSUFFICIENT_DATA` sont préservés ; le moteur n'invente pas de violations quand les données ne permettent pas de conclure.
+- **Exécution plus robuste** : détection des lecteurs disponibles, limitation des notifications répétées de démos, gestion du cycle de vie des analyses par lots et écritures atomiques du cache.
+- **Intégrité des analyses** : les états `ERROR` et `INSUFFICIENT_DATA` sont préservés ; une analyse incomplète reste signalée même si d'autres joueurs ont des signaux, et le moteur n'invente pas de violations quand les données ne permettent pas de conclure.
+- **Analyse d'occlusion prudente** : le suivi de cibles non visibles s'appuie sur un proxy géométrique, pas sur un ray-cast du moteur Source 2 ; il ne constitue pas une preuve de wallhack.
 
 ## Pipeline de données CS2CD
 
@@ -94,8 +95,9 @@ La terminologie des résultats vise la prudence : **anomalie biomécanique**, **
 ### Pour les joueurs
 
 1. Ouvrez la page des [dernières Releases](https://github.com/maelmeriguet4-glitch/CS2-Spectator/releases).
-2. Téléchargez le paquet Windows (`.exe` ou `.zip`) ou Linux (`.zip` ou `.tar.gz`) disponible.
-3. Lancez l'application et sélectionnez une démo `.dem` locale ou importez un replay Faceit.
+2. Téléchargez `CS2-Spectator-windows.zip` sous Windows, ou `CS2-Spectator-linux.zip` / `CS2-Spectator-linux.tar.gz` sous Linux.
+3. Extrayez l'archive complète dans un dossier, puis lancez `CS2_AntiCheat.exe` (Windows) ou `CS2_AntiCheat/CS2_AntiCheat` (Linux) depuis ce dossier. Le paquet `onedir` inclut les deux bundles de modèles et ses dépendances : ne déplacez pas l'exécutable seul.
+4. Sélectionnez une démo `.dem` locale ou importez un replay Faceit.
 
 ### Pour les développeurs
 
@@ -132,26 +134,20 @@ N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins l
 
 ## Tests
 
-La suite comprend **120 tests unitaires** ; sur la vérification de cette version, **120 réussissent et aucun n'est ignoré**. Les 105 tests E2E (`tests/e2e/`) passent également. Pour les relancer :
+Le contrôle de préparation de release vérifie la syntaxe, Ruff, les suites unitaires et E2E, les bundles ML, le schéma de caractéristiques, le packaging et la CLI. Exécutez-le depuis la racine du dépôt :
 
 ```bash
-python -m pytest tests/unit/
-python -m pytest tests/e2e/
+python scripts/verify_release_ready.py
 ```
 
-Pour lancer séparément les tests unitaires :
+Les tests peuvent aussi être lancés séparément :
 
 ```bash
 python -m pytest tests/unit/ -q
-```
-
-Pour la vérification locale de v2.5.1, la suite unitaire compte **120 tests** : **118 réussissent et 2 sont ignorés**. Les tests E2E comptent **105 tests** : **91 réussissent, 11 sont ignorés et 3 nécessitent les artefacts locaux de packaging/dataset** (dossier `dist/`, démos et manifeste CS2CD). Ces contrôles dépendants de l'environnement ne constituent pas une validation de release.
-
-```bash
 python -m pytest tests/e2e/ -q
 ```
 
-Le script de vérification est le contrôle de référence ; le nombre de tests peut évoluer avec les contributions.
+Certaines vérifications réelles sont conditionnelles à des ressources locales non distribuées — démo de test, manifeste CS2CD, dataset ou build dans `dist/`. Pour ajouter l'analyse d'une démo et un build PyInstaller au gate, utilisez `python scripts/verify_release_ready.py --with-demo --with-build`. Un test ignoré ou une ressource absente ne constitue pas une validation de release.
 
 ## Confidentialité et limites
 
