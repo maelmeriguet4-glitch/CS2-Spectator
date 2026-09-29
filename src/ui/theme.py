@@ -172,9 +172,9 @@ def format_suspicion_color(score: float) -> str:
     - 35% - 69%: Amber Yellow (#F59E0B)
     - 70% - 100%: Crimson Red (#EF4444)
     """
-    if score < 35.0:
+    if score < 40.0:
         return THEME["clean_green"]
-    elif score < 70.0:
+    elif score < 80.0:
         return THEME["suspect_amber"]
     return THEME["cheater_red"]
 
@@ -185,7 +185,7 @@ def get_status_colors(verdict: str, suspicion_score: float = 0.0) -> Dict[str, s
     """
     norm_verdict = (verdict or "").upper()
 
-    if norm_verdict == "CHEATER" or suspicion_score >= 70.0:
+    if norm_verdict == "CHEATER" or suspicion_score >= 80.0:
         return {
             "badge_bg": THEME["cheater_red_bg"],
             "badge_text": THEME["cheater_red_text"],
@@ -195,7 +195,7 @@ def get_status_colors(verdict: str, suspicion_score: float = 0.0) -> Dict[str, s
             "border_color": THEME["cheater_border"],
             "why_title": "Anomalies biomécaniques détectées :",
         }
-    elif norm_verdict == "SUSPECT" or suspicion_score >= 35.0:
+    elif norm_verdict == "SUSPECT" or suspicion_score >= 40.0:
         return {
             "badge_bg": THEME["suspect_amber_bg"],
             "badge_text": THEME["suspect_amber_text"],

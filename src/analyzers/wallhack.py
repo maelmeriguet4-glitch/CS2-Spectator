@@ -1,7 +1,7 @@
 """
 CS2 Anti-Cheat — Analyseur Wallhack / ESP
 Détection de lock-on vers des cibles non visibles via proxy d'occlusion géométrique 3D.
-Proxy d'occlusion géométrique (pas de véritable ray-cast Source 2).
+Proxy d'occlusion géométrique (pas de véritable proxy d'occlusion Source 2).
 """
 
 from dataclasses import dataclass, field
@@ -287,7 +287,7 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
                     "target_name": enemy_name,
                     "target_steamid": enemy_id,
                     "distance": round(float(dist_moy), 2),
-                    "description": "Alignement continu sur cible non visible (proxy d'occlusion, pas de ray-cast Source 2)",
+                    "description": "Alignement continu sur cible non visible (proxy d'occlusion, pas de proxy d'occlusion Source 2)",
                 })
             return WallhackResult(metrics=metrics, flagged_locks=locks)
         except Exception:

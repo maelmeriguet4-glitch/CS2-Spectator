@@ -241,7 +241,7 @@ class TestTier2BoundariesR3GUI(unittest.TestCase):
         """R3.B3: MatchAnalysisResult with 0 players must handle summary statistics gracefully."""
         empty_match = MatchAnalysisResult(
             demo_path="demos/empty.dem",
-            map_name="unknown",
+            map_name=None,
             server_name="Empty Server",
             total_ticks=0,
             duration_seconds=0.0,
@@ -254,9 +254,9 @@ class TestTier2BoundariesR3GUI(unittest.TestCase):
     def test_r3_b4_suspicion_meter_boundaries(self):
         """R3.B4: Suspicion meter color and verdict transitions at critical thresholds."""
         def get_status_badge(score: float):
-            if score < 35.0:
+            if score < 40.0:
                 return "🟢 NON DÉTECTÉ (CLEAN)", "#10B981"
-            elif score < 70.0:
+            elif score < 80.0:
                 return "🟡 SUSPECT (À SURVEILLER)", "#F59E0B"
             return "🔴 TRICHEUR AVÉRÉ (BAN)", "#EF4444"
 
@@ -265,13 +265,13 @@ class TestTier2BoundariesR3GUI(unittest.TestCase):
         self.assertIn("CLEAN", badge)
         self.assertEqual(col, "#10B981")
 
-        # Suspect edge: 35.0%
-        badge, col = get_status_badge(35.0)
+        # Suspect edge: 40.0%
+        badge, col = get_status_badge(40.0)
         self.assertIn("SUSPECT", badge)
         self.assertEqual(col, "#F59E0B")
 
-        # Cheater edge: 70.0%
-        badge, col = get_status_badge(70.0)
+        # Cheater edge: 80.0%
+        badge, col = get_status_badge(80.0)
         self.assertIn("TRICHEUR", badge)
         self.assertEqual(col, "#EF4444")
 

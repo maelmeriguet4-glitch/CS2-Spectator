@@ -42,9 +42,9 @@ class CS2CDAdapter:
         self.chemin_demo = demo_table_path
         self.chemin_json = json_path
         self.valide = False
-        self.format_source = "unknown"
+        self.format_source = None
         self.header: Dict[str, Any] = {
-            "map_name": "unknown",
+            "map_name": None,
             "server_name": "CS2CD_Dataset",
             "playback_time": 0.0,
         }
@@ -176,7 +176,7 @@ class CS2CDAdapter:
             csstats = data.get("CSstats_info", [])
             if isinstance(csstats, list) and csstats:
                 meta = csstats[0]
-                self.header["map_name"] = meta.get("map", "unknown")
+                self.header["map_name"] = meta.get("map", None)
                 self.header["server_name"] = meta.get("server", "CS2CD_Server")
 
             # 1. Tirs (weapon_fire)
@@ -188,12 +188,12 @@ class CS2CDAdapter:
                     df_tirs["user_name"] = df_tirs["user_steamid"].astype(str)
                     df_tirs["steamid"] = df_tirs["user_steamid"].astype(str)
                 elif "user_name" not in df_tirs.columns:
-                    df_tirs["user_name"] = "unknown"
-                    df_tirs["steamid"] = "unknown"
+                    df_tirs["user_name"] = None
+                    df_tirs["steamid"] = None
                 if "weapon" not in df_tirs.columns:
-                    df_tirs["weapon"] = "weapon_unknown"
+                    df_tirs["weapon"] = None
                 if "tick" in df_tirs.columns:
-                    df_tirs["tick"] = pd.to_numeric(df_tirs["tick"], errors="coerce").fillna(0).astype(int)
+                    df_tirs["tick"] = pd.to_numeric(df_tirs["tick"], errors="coerce").astype(int)
                     df_tirs = df_tirs.sort_values(by="tick").reset_index(drop=True)
                 self.tirs = df_tirs
 
@@ -206,7 +206,7 @@ class CS2CDAdapter:
                 if "user_steamid" in df_hurt.columns:
                     df_hurt["user_name"] = df_hurt["user_steamid"].astype(str)
                 if "tick" in df_hurt.columns:
-                    df_hurt["tick"] = pd.to_numeric(df_hurt["tick"], errors="coerce").fillna(0).astype(int)
+                    df_hurt["tick"] = pd.to_numeric(df_hurt["tick"], errors="coerce").astype(int)
                     df_hurt = df_hurt.sort_values(by="tick").reset_index(drop=True)
                 self.touches = df_hurt
 
@@ -219,7 +219,7 @@ class CS2CDAdapter:
                 if "user_steamid" in df_death.columns:
                     df_death["user_name"] = df_death["user_steamid"].astype(str)
                 if "tick" in df_death.columns:
-                    df_death["tick"] = pd.to_numeric(df_death["tick"], errors="coerce").fillna(0).astype(int)
+                    df_death["tick"] = pd.to_numeric(df_death["tick"], errors="coerce").astype(int)
                     df_death = df_death.sort_values(by="tick").reset_index(drop=True)
                 self.morts = df_death
 
@@ -254,7 +254,7 @@ class CS2CDAdapter:
 
     @property
     def map_name(self) -> str:
-        return self.header.get("map_name") or "unknown"
+        return self.header.get("map_name") or None
 
     @property
     def server_name(self) -> str:

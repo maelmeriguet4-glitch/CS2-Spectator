@@ -85,8 +85,8 @@ class AntiCheatEngine:
             _report(1.0, "Échec du chargement : fichier de démo corrompu ou illisible.")
             return MatchAnalysisResult(
                 demo_path=demo_path,
-                map_name=demo_data.map_name or "unknown",
-                server_name=demo_data.server_name or "unknown",
+                map_name=demo_data.map_name or None,
+                server_name=demo_data.server_name or None,
                 total_ticks=0,
                 duration_seconds=0.0,
                 players=[],
@@ -101,7 +101,7 @@ class AntiCheatEngine:
             # Reconstruct player list from nicknames if steamid table was sparse
             for i, p_name in enumerate(demo_data.players):
                 players.append({
-                    "steamid": f"unknown_{i}",
+                    "steamid": f"anonymous_{i}",
                     "name": p_name,
                     "team_number": 0,
                 })
@@ -122,10 +122,10 @@ class AntiCheatEngine:
         # 3. Analyze each player (Parallel multi-threading)
         def _analyze_single_player(idx: int, p_info: Dict[str, Any]) -> PlayerTelemetry:
             steamid = str(p_info.get("steamid", ""))
-            name = str(p_info.get("name", "Unknown"))
+            name = str(p_info.get("name", None))
             team = int(p_info.get("team_number", 0))
 
-            identifier = steamid if steamid and steamid != "0" and not steamid.startswith("unknown") else name
+            identifier = steamid if steamid and steamid != "0" and not steamid.startswith("anonymousnknown") else name
 
             # Aimbot
             aim_res = analyze_aimbot(demo_data, identifier)
@@ -208,7 +208,7 @@ class AntiCheatEngine:
                     p_info = players[idx]
                     analyzed_dict[idx] = PlayerTelemetry(
                         steamid=str(p_info.get("steamid", "")),
-                        name=str(p_info.get("name", "Unknown")),
+                        name=str(p_info.get("name", None)),
                         team_number=int(p_info.get("team_number", 0)),
                         verdict="ERROR",
                     )

@@ -359,7 +359,7 @@ class TestTier1FeatureR2TelemetryAndML(unittest.TestCase):
 
         scaled_human = scaler.transform(human_features)
         prob_human = modele.predict_proba(scaled_human)[0][1] * 100.0
-        self.assertLess(prob_human, 35.0, f"Human profile should score Clean (<35%), got {prob_human}%")
+        self.assertLess(prob_human, 40.0, f"Human profile should score Clean (<35%), got {prob_human}%")
 
         # Cheater vector (blatant aimbot snaps, bhop script, and wallhack locks)
         cheater_features = np.array([[
@@ -382,7 +382,7 @@ class TestTier1FeatureR2TelemetryAndML(unittest.TestCase):
 
         scaled_cheater = scaler.transform(cheater_features)
         prob_cheater = modele.predict_proba(scaled_cheater)[0][1] * 100.0
-        self.assertGreaterEqual(prob_cheater, 70.0, f"Cheater profile should score Cheater (>=70%), got {prob_cheater}%")
+        self.assertGreaterEqual(prob_cheater, 80.0, f"Cheater profile should score Cheater (>=70%), got {prob_cheater}%")
 
 
 # ============================================================================
@@ -542,10 +542,10 @@ class TestTier1FeatureR4ReportingWizard(unittest.TestCase):
             f"FaceitFinder: https://faceitfinder.com/profile/{player.steamid}\n\n"
             f"1. VIOLATION CATEGORY:\n{bullets_qcm}\n\n"
             f"2. QUANTITATIVE BIOMECHANICAL AUDIT:\n"
-            f"- Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict})\n"
+            f"- Score de Suspicion: {player.suspicion_score:.1f}% ({player.verdict})\n"
             f"- Max Angular Snap Velocity: {player.aim_metrics.get('aim_p99', 0.0):.1f} deg/tick\n"
             f"- Perfect 1-Tick Ground Jump Transition: {player.bhop_metrics.get('bhop_ratio_parfaits', 0.0)*100:.1f}%\n"
-            f"- Occluded 3D Eye-Ray Alignment: {player.wh_metrics.get('wh_ratio_lock_strict', 0.0)*100:.1f}%\n\n"
+            f"- Alignement proxy d'occlusion: {player.wh_metrics.get('wh_ratio_lock_strict', 0.0)*100:.1f}%\n\n"
             f"3. AUDITOR CONTEXT:\n{notes if notes else 'N/A'}\n\n"
             f"Ticket generated automatically via CS2 Anti-Cheat Replay Auditor."
         )

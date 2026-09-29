@@ -95,9 +95,9 @@ class TestUITheme(unittest.TestCase):
     def test_format_suspicion_color(self):
         self.assertEqual(format_suspicion_color(15.0), THEME["clean_green"])
         self.assertEqual(format_suspicion_color(34.9), THEME["clean_green"])
-        self.assertEqual(format_suspicion_color(35.0), THEME["suspect_amber"])
+        self.assertEqual(format_suspicion_color(40.0), THEME["suspect_amber"])
         self.assertEqual(format_suspicion_color(69.9), THEME["suspect_amber"])
-        self.assertEqual(format_suspicion_color(70.0), THEME["cheater_red"])
+        self.assertEqual(format_suspicion_color(80.0), THEME["cheater_red"])
         self.assertEqual(format_suspicion_color(98.5), THEME["cheater_red"])
 
     def test_get_status_colors(self):

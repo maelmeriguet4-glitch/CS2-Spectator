@@ -19,8 +19,12 @@ def test_batch_processor():
         processor._manager_thread.join(timeout=5.0)
         
     messages = []
-    while not processor.msg_queue.empty():
-        messages.append(processor.msg_queue.get_nowait())
+    import queue
+    while True:
+        try:
+            messages.append(processor.msg_queue.get_nowait())
+        except queue.Empty:
+            break
         
     # Analyze messages
     completions = [m for m in messages if m[0] == "BATCH_COMPLETE"]

@@ -82,7 +82,7 @@ class TestAngleMath(unittest.TestCase):
         self.assertEqual(normalize_angle(-90.0), -90.0)
         self.assertIn(normalize_angle(180.0), [-180.0, 180.0])
         self.assertEqual(normalize_angle(270.0), -90.0)
-        self.assertEqual(normalize_angle(-270.0), 90.0)
+        self.assertEqual(normalize_angle(-280.0), 80.0)
         self.assertEqual(normalize_angle(360.0), 0.0)
         self.assertEqual(normalize_angle(720.0), 0.0)
 

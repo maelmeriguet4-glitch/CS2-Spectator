@@ -314,11 +314,11 @@ Replay File: {ctx['demo_filename']}
 {qcm_text}
 
 2. QUANTITATIVE BIOMECHANICAL AUDIT:
-- Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict})
-- Max Angular Snap Velocity: {m['aim_p99']:.1f} deg/tick (Human baseline: 10-15 deg/tick)
+- Score de Suspicion: {player.suspicion_score:.1f}% ({player.verdict})
+- Max Angular Snap Velocity: {m['aim_p99']:.1f} deg/tick (Standard: 10-15 deg/tick)
 - Angular Jerk Index: {m['aim_jerk_max']:.1f} (Mean: {m['aim_jerk_moyen']:.1f})
 - Perfect 1-Tick Ground Jump Transition: {m['bhop_ratio']:.1f}% on {m['bhop_total']} jumps (Max Chain: {m['bhop_chain']})
-- Occluded 3D Eye-Ray Alignment: {m['wh_lock_strict']:.1f}% of unspotted ticks
+- Alignement proxy d'occlusion: {m['wh_lock_strict']:.1f}% of unspotted ticks
 - Continuous Occluded Target Tracking: {m['wh_track_max']} consecutive ticks (Avg Distance: {m['wh_dist_avg']:.1f} units){incident_section}
 
 3. SYSTEM FLAGS:

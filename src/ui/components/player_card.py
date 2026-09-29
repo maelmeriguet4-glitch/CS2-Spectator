@@ -264,7 +264,7 @@ class PlayerCard(ctk.CTkFrame):
         self.btn_watch_ingame.pack(side="left", padx=(0, 8))
 
         # Middle action: Steam Profile
-        has_valid_steam = bool(player.steamid and player.steamid != "0" and not player.steamid.startswith("unknown"))
+        has_valid_steam = bool(player.steamid and player.steamid != "0" and not player.steamid.startswith("anonymousnknown"))
         self.btn_steam = ctk.CTkButton(
             self.actions_frame,
             text="🌐 Steam",
@@ -510,7 +510,7 @@ class PlayerCard(ctk.CTkFrame):
         self._render_violation_pills()
 
         # Buttons
-        has_valid_steam = bool(player.steamid and player.steamid != "0" and not player.steamid.startswith("unknown"))
+        has_valid_steam = bool(player.steamid and player.steamid != "0" and not player.steamid.startswith("anonymousnknown"))
         self.btn_steam.configure(state="normal" if has_valid_steam else "disabled")
         self.btn_faceit.configure(state="normal" if has_valid_steam else "disabled")
         

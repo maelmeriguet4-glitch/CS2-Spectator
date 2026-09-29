@@ -1,105 +1,54 @@
-﻿name: Build and publish release
+name: Release Pipeline
 
 on:
   push:
     tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: "Tag of the existing GitHub release to replace assets for"
-        required: true
-        default: "v2.5.1"
-        type: string
-
-permissions:
-  contents: write
+      - 'v*'
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest]
-
+  validate:
+    runs-on: windows-latest
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
-          cache: pip
-
+          python-version: '3.14' # Use actual version
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-
-      - name: Build application
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: python -m PyInstaller --noconfirm --clean CS2_AntiCheat.spec
-
-      - name: Package Windows release
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: Compress-Archive -Path dist\CS2_AntiCheat -DestinationPath dist\CS2-Spectator-windows.zip
-
-      - name: Build application
-        if: runner.os == 'Linux'
-        run: python -m PyInstaller --noconfirm --clean CS2_AntiCheat.spec
-
-      - name: Package Linux release
-        if: runner.os == 'Linux'
+          pip install -r requirements.txt
+      - name: Run Release Gate (Strict)
         run: |
-          chmod +x dist/CS2_AntiCheat/CS2_AntiCheat
-          cd dist
-          zip -r CS2-Spectator-linux.zip CS2_AntiCheat
-          tar -czf CS2-Spectator-linux.tar.gz CS2_AntiCheat
+          python scripts/verify_release_ready.py
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+  build:
+    needs: validate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          name: release-${{ runner.os }}
-          path: |
-            dist/CS2-Spectator-windows.zip
-            dist/CS2-Spectator-linux.zip
-            dist/CS2-Spectator-linux.tar.gz
-          if-no-files-found: error
+          python-version: '3.14'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build executable
+        run: python build_exe.py --onefile
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: CS2_AntiCheat
+          path: dist/CS2_AntiCheat.exe
 
   publish:
-    name: Publish GitHub release
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          path: release-assets
-          pattern: release-*
-          merge-multiple: true
-
-      - name: Publish release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Invalid release tag: $RELEASE_TAG" >&2
-              exit 1
-            fi
-            gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
-            gh release upload "$RELEASE_TAG" release-assets/* \
-              --repo "$GITHUB_REPOSITORY" \
-              --clobber
-          else
-            gh release create "$RELEASE_TAG" release-assets/* \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "CS2 Spectator $RELEASE_TAG" \
-              --generate-notes
-          fi
+          files: dist/CS2_AntiCheat.exe

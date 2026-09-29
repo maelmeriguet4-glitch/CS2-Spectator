@@ -189,8 +189,8 @@ class MatchAnalysisResult:
     def from_dict(cls, data: Dict[str, Any]) -> "MatchAnalysisResult":
         return cls(
             demo_path=data.get("demo_path", ""),
-            map_name=data.get("map_name", "Unknown"),
-            server_name=data.get("server_name", "Unknown"),
+            map_name=data.get("map_name", None),
+            server_name=data.get("server_name", None),
             total_ticks=data.get("total_ticks", 0),
             duration_seconds=data.get("duration_seconds", 0.0),
             players=[PlayerTelemetry.from_dict(p) for p in data.get("players", [])],

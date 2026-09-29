@@ -1,3 +1,5 @@
+import queue
+
 """
 Tier 3: Cross-Feature Interactions Test Suite.
 Validates pairwise and multi-component subsystem interactions:
@@ -9,7 +11,6 @@ Validates pairwise and multi-component subsystem interactions:
 """
 
 import os
-import queue
 import sys
 import tempfile
 import threading

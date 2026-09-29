@@ -1,5 +1,6 @@
 from src.core.export import export_player_report
 
+
 class PlayerMock:
     def __init__(self):
         self.name = "Xx_Sniper_xX"

@@ -57,7 +57,7 @@ class TestCheatClassifier(unittest.TestCase):
             "bhop_ratio_parfaits": 0.12,
             "bhop_variance_sol": 20.0,
             "bhop_chaine_max": 1,
-            "bhop_vitesse_moyenne": 135.0,
+            "bhop_vitesse_moyenne": 140.0,
         }
         wh = {
             "wh_ratio_lock_cache": 0.06,
@@ -70,7 +70,7 @@ class TestCheatClassifier(unittest.TestCase):
         self.assertIsInstance(res, ClassificationResult)
         self.assertEqual(res.verdict, "CLEAN")
         self.assertIn("🟢", res.display_verdict)
-        self.assertLess(res.suspicion_score, 35.0)
+        self.assertLess(res.suspicion_score, 40.0)
         self.assertEqual(len(res.critical_factors), 0)
 
     def test_suspect_player_one_critical_factor(self):
@@ -82,8 +82,8 @@ class TestCheatClassifier(unittest.TestCase):
         res = classifier.predict(aim, bhop, wh)
         self.assertEqual(res.verdict, "SUSPECT")
         self.assertIn("🟡", res.display_verdict)
-        self.assertGreaterEqual(res.suspicion_score, 35.0)
-        self.assertLess(res.suspicion_score, 70.0)
+        self.assertGreaterEqual(res.suspicion_score, 40.0)
+        self.assertLess(res.suspicion_score, 80.0)
         self.assertTrue(any("Snap instantané anormal" in f for f in res.violation_flags))
         self.assertTrue(any("[AIMBOT: Snap 22.5°/tick]" in p for p in res.pills))
 
@@ -96,7 +96,7 @@ class TestCheatClassifier(unittest.TestCase):
         res = classifier.predict(aim, bhop, wh)
         self.assertEqual(res.verdict, "CHEATER")
         self.assertIn("🔴", res.display_verdict)
-        self.assertGreaterEqual(res.suspicion_score, 70.0)
+        self.assertGreaterEqual(res.suspicion_score, 80.0)
         self.assertGreaterEqual(len(res.critical_factors), 2)
 
     def test_critical_factor_overrides(self):

@@ -172,7 +172,7 @@ class TestAdversarialAngleFlicks(unittest.TestCase):
         res = analyze_aimbot(mock_demo, "76561198000000088")
 
         self.assertIsInstance(res, AimAnalysisResult)
-        self.assertGreaterEqual(res.metrics["aim_p99"], 170.0)
+        self.assertGreaterEqual(res.metrics["aim_p99"], 175.0)
         self.assertGreaterEqual(res.metrics["aim_jerk_max"], 100.0)
         self.assertGreater(len(res.flagged_snaps), 0)
 

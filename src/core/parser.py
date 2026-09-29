@@ -190,11 +190,11 @@ class DemoData:
 
     @property
     def map_name(self) -> str:
-        return self.header.get("map_name") or "unknown"
+        return self.header.get("map_name") or None
 
     @property
     def server_name(self) -> str:
-        return self.header.get("server_name") or "unknown"
+        return self.header.get("server_name") or None
 
     @property
     def total_ticks(self) -> int:

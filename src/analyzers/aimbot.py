@@ -299,7 +299,7 @@ def analyze_aimbot(demo_data_or_path, identifier: str) -> AimbotResult:
                     "delta_yaw": round(float(y_diff.loc[idx_row]), 2),
                     "delta_pitch": round(float(p_diff.loc[idx_row]), 2),
                     "jerk": round(float(jerk.loc[idx_row]) if not np.isnan(jerk.loc[idx_row]) else 0.0, 2),
-                    "weapon": str(row.get("active_weapon_name", row.get("weapon", "weapon_unknown"))),
+                    "weapon": str(row.get("active_weapon_name", row.get("weapon", "None"))),
                     "trajectory": real_traj,
                 })
     return AimbotResult(metrics=profil, flagged_snaps=snaps)

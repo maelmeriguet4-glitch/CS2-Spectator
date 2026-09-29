@@ -1,0 +1,147 @@
+.\apply_audit_fixes.py:119 [70\.0] -> if score >= max(70.0, seuil_high) or len(facteurs) >= 2 or any("SPINBOT" in p fo
+.\apply_audit_fixes.py:217 [70\.0] -> if score >= max(70.0, seuil_high) or len(facteurs) >= 2 or any("SPINBOT" in p fo
+.\apply_audit_fixes.py:300 [ray-cast] -> # FIX 5: Wallhack — remove "ray-cast" language
+.\apply_audit_fixes.py:312 [ray-cast] -> "Alignement continu sur cible non visible (proxy d'occlusion, pas de ray-cast So
+.\apply_audit_fixes.py:477 [ray-cast] -> "Proxy d'occlusion géométrique (pas de véritable ray-cast Source 2)."
+.\main.py:85 [except FileNotFoundError] -> except FileNotFoundError as e:
+.\ORIGINAL_REQUEST.md:22 [eye-ray] -> - **Wallhack / ESP**: compute 3D Source 2 eye-ray alignment vectors against unsp
+.\README.md:70 [unknown] -> | `unknown` | Joueur non annoté dans un match où un tricheur est présent | **Exc
+.\README.md:73 [unknown] -> En particulier, **un joueur non annoté dans un match avec tricheur n'est pas rép
+.\README.md:129 [unknown] -> L'indexation produit le manifeste local `data/anti_cheat_dataset.csv` et l'exemp
+.\TEST_INFRA.md:38 [eye-ray] -> - Wallhack telemetry (3D eye-ray vector alignment $\mathbf{D} = \mathbf{P}_e - \
+.\TEST_READY.md:57 [eye-ray] -> - `test_r2_4_wallhack_raycast_alignment`: 3D eye-ray alignment $\mathbf{D} = \ma
+.\TEST_READY.md:84 [35\.0] -> - **R3 Boundaries (5 tests)**: Unicode player nicknames (emojis 🎯, Cyrillic, Chi
+.\TEST_READY.md:84 [70\.0] -> - **R3 Boundaries (5 tests)**: Unicode player nicknames (emojis 🎯, Cyrillic, Chi
+.\.agents\ORIGINAL_REQUEST.md:22 [eye-ray] -> - **Wallhack / ESP**: compute 3D Source 2 eye-ray alignment vectors against unsp
+.\.agents\teamwork_preview_auditor_1\audit_report.md:18 [eye-ray] -> 2. **Authentic Biomechanical Computation**: All mathematical models — including 
+.\.agents\teamwork_preview_auditor_1\audit_report.md:104 [35\.0] -> - **Cheater Input**: `{'clean': 12.0, 'cheat': 88.0}`, Score: `88.0`, Verdict: `
+.\.agents\teamwork_preview_auditor_1\BRIEFING.md:33 [eye-ray] -> - Check 2: Mathematical verification of telemetry engines (trigonometry in aimbo
+.\.agents\teamwork_preview_explorer_survey_2\DISPATCH.md:12 [eye-ray] -> - Wallhack / ESP: 3D Source 2 eye-ray alignment vectors against unspotted / occl
+.\.agents\teamwork_preview_explorer_survey_2\handoff.md:47 [TRICHE AVÉRÉE] -> - Aimbot cheater: `71.5%` triche $\to$ `🔴 TRICHE AVÉRÉE (BAN)` with flags `['Sna
+.\.agents\teamwork_preview_explorer_survey_2\handoff.md:48 [inhumain] -> - Bhop cheater: `95.0%` triche $\to$ `🔴 TRICHE AVÉRÉE (BAN)` with flags `['Bhop 
+.\.agents\teamwork_preview_explorer_survey_2\handoff.md:48 [TRICHE AVÉRÉE] -> - Bhop cheater: `95.0%` triche $\to$ `🔴 TRICHE AVÉRÉE (BAN)` with flags `['Bhop 
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:145 [35\.0] -> - **Aimbot linéaire ou instantané (Snapbot)** : Changement brutal de trajectoire
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:271 [inhumain] -> 2. **Jerk Inhumain** : $\text{aim\_jerk\_max} > 35.0$
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:271 [35\.0] -> 2. **Jerk Inhumain** : $\text{aim\_jerk\_max} > 35.0$
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:273 [inhumain] -> 4. **Chaîne Bhop Inhumaine** : $\text{bhop\_chaine\_max} \ge 4$
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:278 [TRICHE AVÉRÉE] -> - 🔴 **TRICHE AVÉRÉE (CONFIRMED CHEATER)** :
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:279 [70\.0] -> $p_{\text{triche}} \ge 70.0\% \quad \text{OU} \quad \text{Nb Facteurs Critiques}
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:281 [35\.0] -> $35.0\% \le p_{\text{triche}} < 70.0\% \quad \text{OU} \quad \text{Nb Facteurs C
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:281 [70\.0] -> $35.0\% \le p_{\text{triche}} < 70.0\% \quad \text{OU} \quad \text{Nb Facteurs C
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:283 [35\.0] -> $p_{\text{triche}} < 35.0\% \quad \text{ET} \quad \text{Nb Facteurs Critiques} =
+.\.agents\teamwork_preview_explorer_survey_2\telemetry_report.md:348 [35\.0] -> | **Silent Aim** | `aim_jerk_max` | $< 12.0$ | $> 35.0$ | **Discontinuité de rou
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:13 [ray-cast] -> 3. **Steam & Faceit Reporting Wizard with Interactive QCM (R4)**: Standalone mod
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:248 [inhumain] -> - `[ ] Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)`
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:261 [human baseline] -> - Max Snap Angle (°/tick) vs Human baseline (10-15°/tick)
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:264 [ray-cast] -> - Ray-Cast Occluded Lock Ratio (%) & Consecutive Tracking Ticks
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:290 [ray-cast] -> - Lock de visée à travers les murs (Ray-Cast) : {wh_lock_strict}% du temps caché
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:313 [Machine Learning Confidence] -> - Machine Learning Confidence: {suspicion_score}% ({verdict})
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:317 [eye-ray] -> - Occluded 3D Eye-Ray Alignment: {wh_lock_strict}% of unspotted ticks
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:448 [eye-ray] -> │   └── wallhack.py          # 3D Source 2 eye-ray vector occlusion tracking
+.\.agents\teamwork_preview_explorer_survey_3\ui_packaging_report.md:485 [ray-cast] -> - 3D Biomechanical Telemetry (Aimbot Snaps/Jerk, BunnyHop 1-Tick, Wallhack Ray-C
+.\.agents\teamwork_preview_orchestrator_1\DISPATCH.md:10 [eye-ray] -> - R2: High-Precision Biomechanical Cheat Detection Engine (refactor and integrat
+.\.agents\teamwork_preview_orchestrator_1\plan.md:9 [eye-ray] -> - Explorer 2: Telemetry & ML Engine Analysis (Aimbot math, BunnyHop 1-tick detec
+.\.agents\teamwork_preview_orchestrator_1\PROJECT.md:22 [eye-ray] -> | 8 | F2.4 Wallhack Telemetry | 3D Source 2 eye-ray alignment vectors vs occlude
+.\.agents\teamwork_preview_reviewer_1\handoff.md:47 [eye-ray] -> - `wallhack.py`: 3D eye-ray vector calculation $\mathbf{D} = \mathbf{P}_e - \mat
+.\.agents\teamwork_preview_worker_m2_1\BRIEFING.md:42 [eye-ray] -> - `src/analyzers/wallhack.py`: 3D Source 2 eye-ray alignment against unspotted e
+.\.agents\teamwork_preview_worker_m2_1\handoff.md:33 [eye-ray] -> - Computes 3D Source 2 eye-ray alignment vectors against unspotted enemies (`spo
+.\.agents\teamwork_preview_worker_m4_1\handoff.md:19 [ray-cast] -> - `compile_telemetry_proof(player: PlayerTelemetry, demo_info: Optional[Union[Re
+.\.planning\STATE.md:3 [unknown] -> status: unknown
+.\legacy_backup\ia_advanced.py:74 [35\.0] -> bhop_var = np.random.uniform(5.0, 35.0)
+.\legacy_backup\ia_advanced.py:103 [70\.0] -> bhop_spd = np.random.uniform(120.0, 170.0)
+.\legacy_backup\ia_advanced.py:209 [35\.0] -> if profil_aim.get("aim_jerk_max", 0) > 35.0:
+.\legacy_backup\ia_advanced.py:214 [inhumain] -> facteurs.append(f"Chaîne de BunnyHop inhumaine ({profil_bhop['bhop_chaine_max']}
+.\legacy_backup\ia_advanced.py:221 [70\.0] -> if proba_triche >= 70.0 or len(facteurs) >= 2:
+.\legacy_backup\ia_advanced.py:222 [TRICHE AVÉRÉE] -> verdict = "TRICHE AVÉRÉE (BAN)"
+.\legacy_backup\ia_advanced.py:223 [35\.0] -> elif proba_triche >= 35.0 or len(facteurs) >= 1:
+.\legacy_backup\report_wizard_legacy.py:70 [inhumain] -> ("snap_reaction", "⚡ Réactions et snaps instantanés inhumains"),
+.\legacy_backup\report_wizard_legacy.py:175 [inhumain] -> "snap_reaction": "Réactions/snaps instantanés inhumains",
+.\scripts\selfcheck_train_pipeline.py:48 [70\.0] -> speed = rng.normal(170.0, 30.0, n_ticks)
+.\scripts\train_cs2cd.py:5 [unknown] -> le filtrage strict des labels 'unknown', l'optimisation du seuil sur la validati
+.\scripts\train_cs2cd.py:278 [unknown] -> label_text = "unknown"
+.\scripts\train_cs2cd.py:286 [unknown] -> label_text = "unknown"
+.\scripts\train_cs2cd.py:354 [unknown] -> unknown_count = len(df[df["label"] == -1])
+.\scripts\train_cs2cd.py:361 [unknown] -> print(f"  - Inconnus écartés (label=-1)   : {unknown_count} (Joueurs non annotés
+.\scripts\train_cs2cd.py:363 [unknown] -> # Exclure strictly les 'unknown' pour la supervision binaire
+.\scripts\train_cs2cd.py:454 [unknown] -> "git_commit": "unknown", # Could be fetched via subprocess if needed
+.\src\analyzers\aimbot.py:302 [weapon_unknown] -> "weapon": str(row.get("active_weapon_name", row.get("weapon", "weapon_unknown"))
+.\src\analyzers\aimbot.py:302 [unknown] -> "weapon": str(row.get("active_weapon_name", row.get("weapon", "weapon_unknown"))
+.\src\analyzers\wallhack.py:4 [ray-cast] -> Proxy d'occlusion géométrique (pas de véritable ray-cast Source 2).
+.\src\analyzers\wallhack.py:290 [ray-cast] -> "description": "Alignement continu sur cible non visible (proxy d'occlusion, pas
+.\src\core\batch_processor.py:49 [Queue\.empty\(\)] -> while not self.msg_queue.empty():
+.\src\core\engine.py:88 [unknown] -> map_name=demo_data.map_name or "unknown",
+.\src\core\engine.py:89 [unknown] -> server_name=demo_data.server_name or "unknown",
+.\src\core\engine.py:104 [unknown] -> "steamid": f"unknown_{i}",
+.\src\core\engine.py:125 [unknown] -> name = str(p_info.get("name", "Unknown"))
+.\src\core\engine.py:128 [unknown] -> identifier = steamid if steamid and steamid != "0" and not steamid.startswith("u
+.\src\core\engine.py:211 [unknown] -> name=str(p_info.get("name", "Unknown")),
+.\src\core\export.py:9 [unknown] -> def export_player_report(player, demo_name: str = "Unknown_Demo", export_dir: st
+.\src\core\models.py:192 [unknown] -> map_name=data.get("map_name", "Unknown"),
+.\src\core\models.py:193 [unknown] -> server_name=data.get("server_name", "Unknown"),
+.\src\core\parser.py:193 [unknown] -> return self.header.get("map_name") or "unknown"
+.\src\core\parser.py:197 [unknown] -> return self.header.get("server_name") or "unknown"
+.\src\core\reporter.py:222 [unknown] -> incident_lines.append(f"  - Tick {ev.get('tick')}: Snap {ev.get('snap_angle', 0.
+.\src\core\reporter.py:296 [unknown] -> incident_lines.append(f"  - Tick {ev.get('tick')}: Snap {ev.get('snap_angle', 0.
+.\src\core\reporter.py:317 [Machine Learning Confidence] -> - Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict})
+.\src\core\reporter.py:318 [human baseline] -> - Max Angular Snap Velocity: {m['aim_p99']:.1f} deg/tick (Human baseline: 10-15 
+.\src\core\reporter.py:321 [eye-ray] -> - Occluded 3D Eye-Ray Alignment: {m['wh_lock_strict']:.1f}% of unspotted ticks
+.\src\ml\classifier.py:138 [35\.0] -> bhop_var = rng.uniform(5.0, 35.0)
+.\src\ml\classifier.py:148 [35\.0] -> jerk_max = rng.uniform(35.0, 150.0)
+.\src\ml\classifier.py:154 [70\.0] -> bhop_spd = rng.uniform(270.0, 350.0)
+.\src\ml\classifier.py:496 [70\.0] -> if has_rage or suspicion_score >= max(70.0, seuil_cheater) or len(facteurs) >= c
+.\src\ml\classifier.py:578 [unknown] -> self.dataset_name = self._bundle.get("dataset_name", "Unknown")
+.\src\ml\classifier.py:579 [unknown] -> self.dataset_revision = self._bundle.get("dataset_revision", "Unknown")
+.\src\ml\cs2cd_adapter.py:45 [unknown] -> self.format_source = "unknown"
+.\src\ml\cs2cd_adapter.py:47 [unknown] -> "map_name": "unknown",
+.\src\ml\cs2cd_adapter.py:148 [unknown] -> self.joueurs = [j for j in joueurs_trouves if j and j != "0" and j != "Player_Un
+.\src\ml\cs2cd_adapter.py:179 [unknown] -> self.header["map_name"] = meta.get("map", "unknown")
+.\src\ml\cs2cd_adapter.py:191 [unknown] -> df_tirs["user_name"] = "unknown"
+.\src\ml\cs2cd_adapter.py:192 [unknown] -> df_tirs["steamid"] = "unknown"
+.\src\ml\cs2cd_adapter.py:194 [weapon_unknown] -> df_tirs["weapon"] = "weapon_unknown"
+.\src\ml\cs2cd_adapter.py:194 [unknown] -> df_tirs["weapon"] = "weapon_unknown"
+.\src\ml\cs2cd_adapter.py:196 [fillna\(0\)] -> df_tirs["tick"] = pd.to_numeric(df_tirs["tick"], errors="coerce").fillna(0).asty
+.\src\ml\cs2cd_adapter.py:209 [fillna\(0\)] -> df_hurt["tick"] = pd.to_numeric(df_hurt["tick"], errors="coerce").fillna(0).asty
+.\src\ml\cs2cd_adapter.py:222 [fillna\(0\)] -> df_death["tick"] = pd.to_numeric(df_death["tick"], errors="coerce").fillna(0).as
+.\src\ml\cs2cd_adapter.py:257 [unknown] -> return self.header.get("map_name") or "unknown"
+.\src\ui\app.py:171 [Queue\.empty\(\)] -> while not self._msg_queue.empty():
+.\src\ui\app.py:204 [Queue\.empty\(\)] -> while not self.batch_processor.msg_queue.empty():
+.\src\ui\theme.py:175 [35\.0] -> if score < 35.0:
+.\src\ui\theme.py:177 [70\.0] -> elif score < 70.0:
+.\src\ui\theme.py:188 [70\.0] -> if norm_verdict == "CHEATER" or suspicion_score >= 70.0:
+.\src\ui\theme.py:198 [35\.0] -> elif norm_verdict == "SUSPECT" or suspicion_score >= 35.0:
+.\src\ui\theme.py:243 [TRICHE AVÉRÉE] -> return "Triche avérée : " + (", ".join(reasons) if reasons else "Anomalies biomé
+.\src\ui\components\header.py:121 [unknown] -> server_display = result.server_name if result.server_name and result.server_name
+.\src\ui\components\player_card.py:267 [unknown] -> has_valid_steam = bool(player.steamid and player.steamid != "0" and not player.s
+.\src\ui\components\player_card.py:513 [unknown] -> has_valid_steam = bool(player.steamid and player.steamid != "0" and not player.s
+.\src\ui\components\report_modal.py:621 [70\.0] -> "is_cheat": ((bhop_ratio > 70.0 and bhop_chain >= 4) or "BHOP" in flags_str),
+.\tests\e2e\test_tier1_features.py:341 [human baseline] -> # Human baseline vector (normal gameplay values)
+.\tests\e2e\test_tier1_features.py:362 [35\.0] -> self.assertLess(prob_human, 35.0, f"Human profile should score Clean (<35%), got
+.\tests\e2e\test_tier1_features.py:385 [70\.0] -> self.assertGreaterEqual(prob_cheater, 70.0, f"Cheater profile should score Cheat
+.\tests\e2e\test_tier1_features.py:545 [Machine Learning Confidence] -> f"- Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict}
+.\tests\e2e\test_tier1_features.py:548 [eye-ray] -> f"- Occluded 3D Eye-Ray Alignment: {player.wh_metrics.get('wh_ratio_lock_strict'
+.\tests\e2e\test_tier2_boundaries.py:244 [unknown] -> map_name="unknown",
+.\tests\e2e\test_tier2_boundaries.py:257 [35\.0] -> if score < 35.0:
+.\tests\e2e\test_tier2_boundaries.py:259 [70\.0] -> elif score < 70.0:
+.\tests\e2e\test_tier2_boundaries.py:268 [35\.0] -> # Suspect edge: 35.0%
+.\tests\e2e\test_tier2_boundaries.py:269 [35\.0] -> badge, col = get_status_badge(35.0)
+.\tests\e2e\test_tier2_boundaries.py:273 [70\.0] -> # Cheater edge: 70.0%
+.\tests\e2e\test_tier2_boundaries.py:274 [70\.0] -> badge, col = get_status_badge(70.0)
+.\tests\e2e\test_tier3_interactions.py:99 [Machine Learning Confidence] -> f"- Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict}
+.\tests\e2e\test_tier3_interactions.py:102 [eye-ray] -> f"- Occluded 3D Eye-Ray Alignment: {wh_strict:.1f}%\n\n"
+.\tests\e2e\test_tier3_interactions.py:256 [unknown] -> if sid != "0" and not sid.startswith("unknown"):
+.\tests\e2e\test_tier3_interactions.py:290 [Queue\.empty\(\)] -> while not progress_queue.empty():
+.\tests\e2e\test_tier5_adversarial.py:114 [70\.0] -> delta_270 = calculate_angular_delta(0.0, 270.0)
+.\tests\e2e\test_tier5_adversarial.py:175 [70\.0] -> self.assertGreaterEqual(res.metrics["aim_p99"], 170.0)
+.\tests\unit\test_batch_processor.py:22 [Queue\.empty\(\)] -> while not processor.msg_queue.empty():
+.\tests\unit\test_cs2cd_tools.py:6 [unknown] -> - Politique d'étiquetage stricte (cheater, probable_non_cheater, unknown)
+.\tests\unit\test_ml.py:60 [35\.0] -> "bhop_vitesse_moyenne": 135.0,
+.\tests\unit\test_ml.py:73 [35\.0] -> self.assertLess(res.suspicion_score, 35.0)
+.\tests\unit\test_ml.py:85 [35\.0] -> self.assertGreaterEqual(res.suspicion_score, 35.0)
+.\tests\unit\test_ml.py:86 [70\.0] -> self.assertLess(res.suspicion_score, 70.0)
+.\tests\unit\test_ml.py:99 [70\.0] -> self.assertGreaterEqual(res.suspicion_score, 70.0)
+.\tests\unit\test_packaging.py:148 [unknown] -> "`unknown`",
+.\tests\unit\test_telemetry.py:84 [70\.0] -> self.assertEqual(normalize_angle(270.0), -90.0)
+.\tests\unit\test_telemetry.py:85 [70\.0] -> self.assertEqual(normalize_angle(-270.0), 90.0)
+.\tests\unit\test_telemetry.py:216 [eye-ray] -> """Tests for 3D Source 2 eye-ray alignment and active wall tracking."""
+.\tests\unit\test_ui.py:98 [35\.0] -> self.assertEqual(format_suspicion_color(35.0), THEME["suspect_amber"])
+.\tests\unit\test_ui.py:100 [70\.0] -> self.assertEqual(format_suspicion_color(70.0), THEME["cheater_red"])
