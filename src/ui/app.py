@@ -168,8 +168,11 @@ class CS2AntiCheatApp(ctk.CTk):
             
         # Check single analysis queue
         try:
-            while not self._msg_queue.empty():
-                msg = self._msg_queue.get_nowait()
+            while True:
+                try:
+                    msg = self._msg_queue.get_nowait()
+                except queue.Empty:
+                    break
                 kind = msg[0]
                 if kind == "PROGRESS":
                     _, pct, text = msg
@@ -201,8 +204,11 @@ class CS2AntiCheatApp(ctk.CTk):
             
         # Check batch processing queue
         try:
-            while not self.batch_processor.msg_queue.empty():
-                msg = self.batch_processor.msg_queue.get_nowait()
+            while True:
+                try:
+                    msg = self.batch_processor.msg_queue.get_nowait()
+                except queue.Empty:
+                    break
                 kind = msg[0]
                 
                 if kind == "BATCH_PROGRESS":

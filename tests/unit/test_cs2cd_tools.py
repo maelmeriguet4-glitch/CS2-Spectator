@@ -31,6 +31,25 @@ from src.ml.classifier import (
 from src.ml.cs2cd_adapter import CS2CDAdapter
 
 
+def make_aim(overrides=None):
+    base = {"aim_vitesse_max": 0.0, "aim_p99": 0.0, "aim_jerk_moyen": 0.0, "aim_jerk_max": 0.0, "aim_ratio_micro_ajustements": 0.0, "aim_variance_vitesse": 0.0}
+    if overrides:
+        base.update(overrides)
+    return base
+
+def make_bhop(overrides=None):
+    base = {"bhop_total_sauts": 0, "bhop_ratio_parfaits": 0.0, "bhop_variance_sol": 50.0, "bhop_chaine_max": 0, "bhop_vitesse_moyenne": 0.0}
+    if overrides:
+        base.update(overrides)
+    return base
+
+def make_wh(overrides=None):
+    base = {"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}
+    if overrides:
+        base.update(overrides)
+    return base
+
+
 class TestCS2CDAdapter(unittest.TestCase):
     """Vérifie la robustesse et la conformité de l'adaptateur CS2CD."""
 
@@ -203,6 +222,7 @@ class TestCS2CDModelBundleAndIntegrity(unittest.TestCase):
             "dataset_name": "CS2CD",
             "training_date": "2026-09-27T17:00:00",
             "threshold": 0.45,
+            "threshold_suspect": 0.20,
             "metrics": {"test": {"f1": 0.85, "precision": 0.88, "recall": 0.82}},
             "model_type": "RandomForestClassifier",
         }
@@ -243,6 +263,7 @@ class TestBundleThresholdAtRuntime(unittest.TestCase):
             "noms_features": NOMS_FEATURES,
             "dataset_name": "CS2CD_test",
             "threshold": 0.25,  # Seuil optimisé = 25%
+            "threshold_suspect": 0.10, # Seuil suspect
             "model_type": "RandomForestClassifier",
         }
         joblib.dump(bundle, self.fake_model_path)
@@ -260,12 +281,12 @@ class TestBundleThresholdAtRuntime(unittest.TestCase):
         """Un score >25% avec threshold=0.25 doit donner CHEATER, pas CLEAN."""
         classifier = CheatClassifier(model_path=self.fake_model_path)
         # Profils aimbot suspects mais pas extrêmes
-        aim = {"aim_p99": 20.0, "aim_jerk_max": 10.0}
-        bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.1}
-        wh = {"wh_ratio_lock_strict": 0.02, "wh_tracking_consecutif_max": 5}
+        aim = make_aim({"aim_p99": 20.0, "aim_jerk_max": 10.0})
+        bhop = make_bhop({"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.1})
+        wh = make_wh({"wh_ratio_lock_strict": 0.02, "wh_tracking_consecutif_max": 5})
         res = classifier.predict(aim, bhop, wh)
         # Avec le snap à 20° > seuil aimbot, on a au moins 1 facteur → SUSPECT min
-        self.assertIn(res.verdict, ["SUSPECT", "CHEATER"])
+        self.assertIn(res.verdict, ["SUSPECT", "SUSPICION", "SUSPICION ÉLEVÉE", "CHEATER"])
 
 
 class TestCS2CDModelSelection(unittest.TestCase):
@@ -309,9 +330,9 @@ class TestPrudentVerdictTerminology(unittest.TestCase):
         """Le classifier FR ne doit jamais retourner de verdict affirmatif."""
         from src.ml.classifier import classifier_joueur
         # Profils extrêmes pour déclencher SUSPICION ÉLEVÉE
-        aim = {"aim_p99": 50.0, "aim_jerk_max": 100.0}
-        bhop = {"bhop_total_sauts": 50, "bhop_ratio_parfaits": 0.95, "bhop_chaine_max": 8}
-        wh = {"wh_ratio_lock_strict": 0.30, "wh_tracking_consecutif_max": 150}
+        aim = make_aim({"aim_p99": 50.0, "aim_jerk_max": 100.0})
+        bhop = make_bhop({"bhop_total_sauts": 50, "bhop_ratio_parfaits": 0.95, "bhop_chaine_max": 8})
+        wh = make_wh({"wh_ratio_lock_strict": 0.30, "wh_tracking_consecutif_max": 150})
         res = classifier_joueur(aim, bhop, wh, nom_joueur="TestPlayer")
         self.assertIsNotNone(res)
         verdict = res["verdict"]
@@ -323,9 +344,9 @@ class TestPrudentVerdictTerminology(unittest.TestCase):
     def test_clean_verdict_prudent(self):
         """Un joueur clean doit avoir le verdict NON DÉTECTÉ, pas 'MATCH INTÈGRE'."""
         from src.ml.classifier import classifier_joueur
-        aim = {"aim_p99": 3.0, "aim_jerk_max": 5.0}
-        bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.05}
-        wh = {"wh_ratio_lock_strict": 0.01, "wh_tracking_consecutif_max": 2}
+        aim = make_aim({"aim_p99": 3.0, "aim_jerk_max": 5.0})
+        bhop = make_bhop({"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.05})
+        wh = make_wh({"wh_ratio_lock_strict": 0.01, "wh_tracking_consecutif_max": 2})
         res = classifier_joueur(aim, bhop, wh, nom_joueur="CleanPlayer")
         self.assertIsNotNone(res)
         self.assertEqual(res["verdict"], "NON DÉTECTÉ")

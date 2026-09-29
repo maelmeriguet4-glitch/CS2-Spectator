@@ -187,12 +187,10 @@ class TestPackagingUnit(unittest.TestCase):
 
         with open(os.path.join(REPO_ROOT, ".github", "workflows", "release.yml"), "r", encoding="utf-8") as f:
             workflow = f.read()
-        self.assertIn("CS2_AntiCheat.spec", workflow)
-        self.assertIn("CS2-Spectator-windows.zip", workflow)
-        self.assertIn("CS2-Spectator-linux.zip", workflow)
-        self.assertIn("CS2-Spectator-linux.tar.gz", workflow)
-        self.assertIn("exclude_binaries=True", spec)
-        self.assertIn("COLLECT(", spec)
+        self.assertIn("build_exe.py", workflow)
+        self.assertIn("dist/CS2_AntiCheat.exe", workflow)
+        self.assertIn("actions/download-artifact", workflow)
+        self.assertIn("EXE(", spec)
 
 
 if __name__ == "__main__":

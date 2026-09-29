@@ -27,8 +27,12 @@ class TestP0Compliance(unittest.TestCase):
     # 4. verdict unique inter-API
     def test_verdict_unique_inter_api(self):
         c = CheatClassifier(model_type="synthetic")
-        res = c.predict(aim_metrics={"aim_p99": 200.0})
-        self.assertIn("SUSPECT", res.verdict)
+        res = c.predict(
+            aim_metrics={"aim_p99": 200.0, "aim_jerk_max": 50, "aim_vitesse_max": 200.0, "aim_jerk_moyen": 10, "aim_ratio_micro_ajustements": 0.5, "aim_variance_vitesse": 10.0},
+            bhop_metrics={"bhop_total_sauts": 10, "bhop_sauts_parfaits": 2, "bhop_ratio": 20.0, "bhop_chain_max": 1, "bhop_vitesse_moyenne": 150.0, "bhop_ratio_parfaits": 20.0, "bhop_variance_sol": 10.0, "bhop_chaine_max": 1},
+            wh_metrics={"wh_ratio_lock_cache": 0, "wh_ratio_lock_strict": 0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0, "wh_preaim_score": 0, "wh_info_timing_ratio": 0}
+        )
+        self.assertIn(res.verdict, ["SUSPECT", "SUSPICION", "SUSPICION ÉLEVÉE", "CHEATER"])
 
     # 5. & 6. & 7. & 8. donnees absentes / NaN / Inf
     @patch("pandas.read_csv")

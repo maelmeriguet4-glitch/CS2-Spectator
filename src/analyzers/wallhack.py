@@ -74,8 +74,11 @@ def analyser_wallhack(demo_ou_chemin, joueur_cible):
     ennemis['distance'] = dist_3d
 
     # ISOLATION : Uniquement les ennemis NON VISIBLES
-    est_visible = ennemis['spotted'].fillna(False).astype(bool)
-    ennemis_caches = ennemis[~est_visible].copy()
+    # Ne pas considérer les données absentes (NaN) comme False.
+    if 'spotted' not in ennemis.columns or ennemis['spotted'].isnull().all():
+        return PROFIL_WH_VIDE.copy()
+        
+    ennemis_caches = ennemis[~ennemis['spotted']].copy()
 
     if ennemis_caches.empty:
         return PROFIL_WH_VIDE.copy()
@@ -112,8 +115,8 @@ def analyser_wallhack(demo_ou_chemin, joueur_cible):
     if not locks_stricts.empty:
         locks_tries = locks_stricts.sort_values(by=['name', 'tick']).copy()
 
-        delta_yaw_j = locks_tries['yaw'].diff().abs()
-        delta_x_e = locks_tries['X_e'].diff().abs()
+        delta_yaw_j = locks_tries.groupby('name')['yaw'].diff().abs()
+        delta_x_e = locks_tries.groupby('name')['X_e'].diff().abs()
 
         locks_tries['est_actif'] = (delta_yaw_j > 0.1) | (delta_x_e > 1.0)
         locks_actifs = locks_tries[locks_tries['est_actif']].copy()

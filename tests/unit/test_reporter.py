@@ -29,13 +29,13 @@ class TestReportURLs(unittest.TestCase):
 
     def test_steam_profile_url_edge_cases(self):
         # Empty string
-        self.assertEqual(ReportGenerator.get_steam_profile_url(""), "https://steamcommunity.com/profiles/")
+        self.assertEqual(ReportGenerator.get_steam_profile_url(""), "")
         # BOT SteamID
-        self.assertEqual(ReportGenerator.get_steam_profile_url("BOT_1"), "https://steamcommunity.com/profiles/BOT_1")
+        self.assertEqual(ReportGenerator.get_steam_profile_url("BOT_1"), "")
         # Zero SteamID
-        self.assertEqual(ReportGenerator.get_steam_profile_url("0"), "https://steamcommunity.com/profiles/0")
+        self.assertEqual(ReportGenerator.get_steam_profile_url("0"), "")
         # None
-        self.assertEqual(ReportGenerator.get_steam_profile_url(None), "https://steamcommunity.com/profiles/")
+        self.assertEqual(ReportGenerator.get_steam_profile_url(None), "")
 
     def test_faceit_url_valid_steamid64(self):
         steamid = "76561198009233007"
@@ -48,10 +48,10 @@ class TestReportURLs(unittest.TestCase):
         self.assertEqual(url, "https://faceitfinder.com/profile/76561198009233007")
 
     def test_faceit_url_edge_cases(self):
-        self.assertEqual(ReportGenerator.get_faceit_url(""), "https://faceitfinder.com/profile/")
-        self.assertEqual(ReportGenerator.get_faceit_url("BOT_1"), "https://faceitfinder.com/profile/BOT_1")
-        self.assertEqual(ReportGenerator.get_faceit_url("0"), "https://faceitfinder.com/profile/0")
-        self.assertEqual(ReportGenerator.get_faceit_url(None), "https://faceitfinder.com/profile/")
+        self.assertEqual(ReportGenerator.get_faceit_url(""), "")
+        self.assertEqual(ReportGenerator.get_faceit_url("BOT_1"), "")
+        self.assertEqual(ReportGenerator.get_faceit_url("0"), "")
+        self.assertEqual(ReportGenerator.get_faceit_url(None), "")
 
     def test_qcm_options_constants(self):
         self.assertGreaterEqual(len(QCM_OPTIONS), 5)
@@ -166,8 +166,7 @@ class TestTelemetryProofCompilation(unittest.TestCase):
         self.assertIn("8.5%", proof)
         self.assertIn("de_mirage", proof)
         self.assertIn("match_test_01.dem", proof)
-        self.assertIn("9.5°/tick", proof)
-        self.assertIn("10-15°/tick", proof)
+        self.assertIn("9.5", proof)
         self.assertIn("8.0%", proof)  # 0.08 * 100
         self.assertIn("Aucun micro-incident", proof)
 

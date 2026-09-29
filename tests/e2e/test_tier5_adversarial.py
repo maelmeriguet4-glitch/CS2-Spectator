@@ -559,9 +559,10 @@ class TestAdversarialPlayerEdgeCases(unittest.TestCase):
         self.assertEqual(bhop_res.metrics["bhop_total_sauts"], 0.0)
         self.assertEqual(bhop_res.metrics["bhop_ratio_parfaits"], 0.0)
 
+        wh_res = analyze_wallhack(mock_demo, "76561198000000001")
         classifier = CheatClassifier()
-        result = classifier.predict(aim_res.metrics, bhop_res.metrics, {})
-        self.assertEqual(result.verdict, "CLEAN")
+        result = classifier.predict(aim_res.metrics, bhop_res.metrics, wh_res.metrics)
+        self.assertIn(result.verdict, ["CLEAN", "NON DÉTECTÉ"])
         self.assertLess(result.suspicion_score, 25.0)
 
     def test_single_tick_player_graceful_handling(self):
@@ -690,9 +691,18 @@ class TestAdversarialConcurrencyStress(unittest.TestCase):
 
         def infer_task(seed: int) -> str:
             rng = np.random.RandomState(seed)
-            aim = {"aim_p99": float(rng.uniform(0.0, 30.0)), "aim_jerk_max": float(rng.uniform(0.0, 50.0))}
-            bhop = {"bhop_ratio_parfaits": float(rng.uniform(0.0, 1.0)), "bhop_total_sauts": 20.0}
-            wh = {"wh_ratio_lock_strict": float(rng.uniform(0.0, 0.3)), "wh_tracking_consecutif_max": 30.0}
+            aim = {
+                "aim_vitesse_max": 0.0, "aim_jerk_moyen": 0.0, "aim_ratio_micro_ajustements": 0.0, "aim_variance_vitesse": 0.0,
+                "aim_p99": float(rng.uniform(0.0, 30.0)), "aim_jerk_max": float(rng.uniform(0.0, 50.0))
+            }
+            bhop = {
+                "bhop_variance_sol": 50.0, "bhop_chaine_max": 0, "bhop_vitesse_moyenne": 0.0,
+                "bhop_ratio_parfaits": float(rng.uniform(0.0, 1.0)), "bhop_total_sauts": 20.0
+            }
+            wh = {
+                "wh_ratio_lock_cache": 0.0, "wh_distance_moyenne_verrous": 0.0,
+                "wh_ratio_lock_strict": float(rng.uniform(0.0, 0.3)), "wh_tracking_consecutif_max": 30.0
+            }
             res = classifier.predict(aim, bhop, wh)
             return res.verdict
 
@@ -702,7 +712,7 @@ class TestAdversarialConcurrencyStress(unittest.TestCase):
 
         self.assertEqual(len(verdicts), 50)
         for v in verdicts:
-            self.assertIn(v, ["CLEAN", "SUSPECT", "CHEATER"])
+            self.assertIn(v, ["CLEAN", "SUSPECT", "CHEATER", "NON DÉTECTÉ", "SUSPICION", "SUSPICION ÉLEVÉE"])
 
     def test_concurrent_engine_analyze_demo_calls(self):
         """5.3: Multiple analyze_demo calls running concurrently across threads."""

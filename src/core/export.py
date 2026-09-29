@@ -6,7 +6,7 @@ def _sanitize_filename(name: str) -> str:
     """Remplace les caractères invalides pour un nom de fichier Windows/Linux."""
     return re.sub(r'[\\/*?:"<>|]', "", name).strip() or "Joueur_Inconnu"
 
-def export_player_report(player, demo_name: str = None, export_dir: str = None) -> str:
+def export_player_report(player, demo_name: str | None = None, export_dir: str | None = None) -> str:
     """
     Génère un rapport texte détaillé pour un joueur suspect.
     Retourne le chemin complet du fichier généré.

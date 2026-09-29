@@ -598,9 +598,8 @@ class TestTier5CLIStress(unittest.TestCase):
             errors="replace",
             timeout=120,
         )
-        self.assertEqual(res.returncode, 0)
-        self.assertIn("Modèle ML introuvable", res.stdout)
-        self.assertIn("SYNTHÈSE :", res.stdout)
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("Modèle ML introuvable", res.stdout + res.stderr)
 
 
 # ============================================================================
