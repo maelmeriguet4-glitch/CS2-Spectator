@@ -162,9 +162,12 @@ class TestPackagingUnit(unittest.TestCase):
             "Qualité et préparation des releases",
             "monofichier",
             "onedir",
-            "tests de régression P0",
+            "verdict canonique partagé",
+            "données insuffisantes",
+            "python scripts/verify_release_ready.py --with-demo --with-build",
             "CS2_AntiCheat.exe",
-            "2.5.2",
+            "2.5.3",
+            "v2.5.2",
             "Signaler un problème",
         ]
         for item in required_content:
@@ -186,17 +189,21 @@ class TestPackagingUnit(unittest.TestCase):
 
         with open(os.path.join(REPO_ROOT, ".github", "workflows", "release.yml"), "r", encoding="utf-8") as f:
             workflow = f.read()
-        self.assertIn("python build_exe.py --onefile", workflow)
+        self.assertIn("python scripts/verify_release_ready.py --with-demo --with-build", workflow)
         self.assertIn("dist/CS2_AntiCheat.exe", workflow)
         self.assertIn("actions/upload-artifact@v4", workflow)
         self.assertIn("actions/download-artifact@v4", workflow)
         self.assertIn("softprops/action-gh-release@v2", workflow)
+        self.assertIn("python scripts/verify_release_ready.py --with-demo --with-build", workflow)
+        self.assertIn("python scripts/verify_release_ready.py --with-demo --with-build", workflow)
         self.assertNotIn("audit_results.txt", workflow)
         self.assertNotIn("train_log.txt", workflow)
         self.assertNotIn("apply_audit_fixes.py", workflow)
         self.assertNotIn("*.parquet", workflow)
         self.assertIn("name='CS2_AntiCheat'", spec)
         self.assertNotIn("COLLECT(", spec)
+        self.assertIn("actions/download-artifact", workflow)
+        self.assertIn("EXE(", spec)
 
     def test_release_gate_skips_missing_local_cs2cd_manifest(self):
         """The release gate must not require a private, untracked CS2CD manifest."""

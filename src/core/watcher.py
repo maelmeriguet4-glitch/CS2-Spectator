@@ -16,8 +16,8 @@ try:
     from src.core.models import ReplayInfo
     from src.core.scanner import ReplayScanner
 except Exception:
-    ReplayInfo = None
-    ReplayScanner = None
+    ReplayInfo: type | None = None
+    ReplayScanner: type | None = None
 
 SOURCE2_MAGIC = b"PBDEMS2\x00"
 

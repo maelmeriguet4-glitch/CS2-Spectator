@@ -387,8 +387,8 @@ class PlayerCard(ctk.CTkFrame):
 
     def _open_steam_profile(self) -> None:
         """Opens Steam Community profile in default web browser."""
-        steamid = self.player.steamid
-        if steamid and steamid != "0":
+        steamid = str(self.player.steamid).strip()
+        if steamid.isdigit() and len(steamid) == 17:
             url = f"https://steamcommunity.com/profiles/{steamid}"
             try:
                 webbrowser.open(url)
@@ -398,8 +398,8 @@ class PlayerCard(ctk.CTkFrame):
 
     def _open_faceit_profile(self) -> None:
         """Opens FaceitFinder profile in default web browser."""
-        steamid = self.player.steamid
-        if steamid and steamid != "0":
+        steamid = str(self.player.steamid).strip()
+        if steamid.isdigit() and len(steamid) == 17:
             url = f"https://faceitfinder.com/profile/{steamid}"
             try:
                 webbrowser.open(url)

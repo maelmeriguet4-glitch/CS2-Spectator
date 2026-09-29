@@ -171,11 +171,9 @@ def optimiser_seuil_validation(y_val, probs_val) -> Tuple[float, Dict[str, Any]]
             meilleur_seuil = float(round(seuil, 2))
             meilleures_metriques = metriques
 
-    # Sécurité : ne jamais publier un seuil qui empêcherait la détection de tout tricheur
+    # Sécurité : ne jamais publier un modèle qui empêche la détection de tricheurs ou a un rappel nul
     if meilleures_metriques is None or meilleures_metriques["recall"] == 0.0:
-        print("[VALIDATION] Rappel nul au seuil optimal : repli sur 0.50.")
-        meilleur_seuil = 0.50
-        meilleures_metriques = calculer_metriques(y_val, (probs_val >= 0.50).astype(int), probs_val)
+        raise ValueError("Rappel nul au seuil optimal : le modèle entraîné est incapable de détecter les tricheurs sur les données de validation. Arrêt.")
 
     return meilleur_seuil, meilleures_metriques
 
@@ -266,6 +264,7 @@ def extraire_features_dataset(
                     vec = extraire_vecteur_features(p_aim, p_bhop, p_wh)
                 except Exception as player_error:
                     print(f"[AVERTISSEMENT] Joueur {player} ignoré dans {match_id} : {player_error}")
+                    error_count += 1
                     continue
 
                 if match_category == "with_cheater_present":
@@ -451,7 +450,7 @@ def train_cs2cd_pipeline(
         "dataset_name": "CS2CD",
         "dataset_revision": "CS2CD-Zenodo-2024",
         "model_version": MODEL_VERSION,
-        "git_commit": "unknown", # Could be fetched via subprocess if needed
+        "git_commit": __import__("subprocess").check_output(["git", "rev-parse", "HEAD"], text=True).strip() if __import__("shutil").which("git") else "unknown",
         "seed": 42,
         "dataset_version": "v1.0-anonymized",
         "training_date": datetime.now().isoformat(),

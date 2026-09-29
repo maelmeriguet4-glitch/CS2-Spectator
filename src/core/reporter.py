@@ -34,6 +34,8 @@ class ReportGenerator:
         Handles edge cases such as BOT identifiers and invalid/empty IDs gracefully.
         """
         sid = str(steamid).strip() if steamid is not None else ""
+        if not sid.isdigit() or len(sid) != 17:
+            return ""
         return f"https://steamcommunity.com/profiles/{sid}"
 
     @staticmethod
@@ -43,6 +45,8 @@ class ReportGenerator:
         Allows instant inspection of Faceit profile, Elo rating, and match rooms.
         """
         sid = str(steamid).strip() if steamid is not None else ""
+        if not sid.isdigit() or len(sid) != 17:
+            return ""
         return f"https://faceitfinder.com/profile/{sid}"
 
     @staticmethod
@@ -133,7 +137,7 @@ class ReportGenerator:
             f"Contexte : Carte {ctx['map_name']} | Démo : {ctx['demo_filename']}",
             "",
             "1. CINÉTIQUE DE VISÉE (AIMBOT TELEMETRY) :",
-            f"  • Vitesse angulaire max (Snap) : {m['aim_p99']:.1f}°/tick [Humain réf. 10-15°/tick]",
+            f"  • Vitesse angulaire 99e percentile : {m['aim_p99']:.1f}°/tick",
             f"  • Vitesse angulaire brute max  : {m['aim_vitesse_max']:.1f}°/s",
             f"  • Jerk angulaire max           : {m['aim_jerk_max']:.1f} (Moyen : {m['aim_jerk_moyen']:.1f})",
             "",
@@ -219,7 +223,7 @@ class ReportGenerator:
             for ev in player.combat_events[:5]:
                 ev_type = ev.get("type", "")
                 if ev_type == "aim_snap":
-                    incident_lines.append(f"  - Tick {ev.get('tick')}: Snap {ev.get('snap_angle', 0.0):.1f}°/tick [{ev.get('weapon', 'unknown')}]")
+                    incident_lines.append(f"  - Tick {ev.get('tick')}: Snap {ev.get('snap_angle', 0.0):.1f}°/tick [{ev.get('weapon', 'N/A')}]")
                 elif ev_type == "bhop_chain":
                     incident_lines.append(f"  - Ticks {ev.get('start_tick')}-{ev.get('end_tick')}: Chaîne de {ev.get('chain_length')} sauts 1-tick")
                 elif ev_type == "wh_lock":
@@ -244,7 +248,7 @@ OBSERVATIONS EN MATCH :
 {qcm_text}
 
 PREUVES TÉLÉMÉTRIQUES OBJECTIVES (Source 2 DemoParser) :
-- Vitesse angulaire max (Snap) : {m['aim_p99']:.1f}°/tick (Seuil humain : 10-15°/tick)
+- Vitesse angulaire 99e percentile : {m['aim_p99']:.1f}°/tick
 - À-coups mécaniques (Jerk max) : {m['aim_jerk_max']:.1f}
 - Ratio de BunnyHop parfait 1-tick : {m['bhop_ratio']:.1f}% sur {m['bhop_total']} sauts (Chaîne max : {m['bhop_chain']})
 - Lock de visée à travers les murs (alignement cible non visible) : {m['wh_lock_strict']:.1f}% du temps caché
@@ -293,7 +297,7 @@ Généré via CS2 Tactical Replay Auditor (Local Biomechanical Analysis)."""
             for ev in player.combat_events[:5]:
                 ev_type = ev.get("type", "")
                 if ev_type == "aim_snap":
-                    incident_lines.append(f"  - Tick {ev.get('tick')}: Snap {ev.get('snap_angle', 0.0):.1f} deg/tick [{ev.get('weapon', 'unknown')}]")
+                    incident_lines.append(f"  - Tick {ev.get('tick')}: Snap {ev.get('snap_angle', 0.0):.1f} deg/tick [{ev.get('weapon', 'N/A')}]")
                 elif ev_type == "bhop_chain":
                     incident_lines.append(f"  - Ticks {ev.get('start_tick')}-{ev.get('end_tick')}: Chained {ev.get('chain_length')} 1-tick jumps")
                 elif ev_type == "wh_lock":
@@ -315,10 +319,10 @@ Replay File: {ctx['demo_filename']}
 
 2. QUANTITATIVE BIOMECHANICAL AUDIT:
 - Score de Suspicion: {player.suspicion_score:.1f}% ({player.verdict})
-- Max Angular Snap Velocity: {m['aim_p99']:.1f} deg/tick (Standard: 10-15 deg/tick)
+- 99th Percentile Angular Velocity: {m['aim_p99']:.1f} deg/tick
 - Angular Jerk Index: {m['aim_jerk_max']:.1f} (Mean: {m['aim_jerk_moyen']:.1f})
 - Perfect 1-Tick Ground Jump Transition: {m['bhop_ratio']:.1f}% on {m['bhop_total']} jumps (Max Chain: {m['bhop_chain']})
-- Alignement proxy d'occlusion: {m['wh_lock_strict']:.1f}% of unspotted ticks
+- Proxy occlusion alignment: {m['wh_lock_strict']:.1f}% of unspotted ticks
 - Continuous Occluded Target Tracking: {m['wh_track_max']} consecutive ticks (Avg Distance: {m['wh_dist_avg']:.1f} units){incident_section}
 
 3. SYSTEM FLAGS:

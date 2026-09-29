@@ -133,16 +133,19 @@ class ReportModal(ctk.CTkToplevel):
 
         # Map and Replay Context
         map_text = "N/A"
-        demo_text = "N/A"
+        demo_text_val: str | None = "N/A"
         if self.match_result is not None:
             map_text = getattr(self.match_result, "map_name", "N/A")
-            demo_text = getattr(self.match_result, "file_name", None)
-            if not demo_text:
+            demo_text_val = getattr(self.match_result, "file_name", None)
+            if not demo_text_val:
                 demo_path = getattr(self.match_result, "demo_path", None) or getattr(self.match_result, "file_path", None)
                 if demo_path:
                     import os
-                    demo_text = os.path.basename(demo_path)
-            demo_text = demo_text or "N/A"
+                    demo_text_val = os.path.basename(demo_path)
+            demo_text_val = demo_text_val or "N/A"
+
+        demo_text = demo_text_val or "N/A"
+
 
         lbl_meta = ctk.CTkLabel(
             title_box,
@@ -583,13 +586,13 @@ class ReportModal(ctk.CTkToplevel):
         flags_str = " ".join(p.violation_flags).upper()
 
         # Definitions of the 5 cheat cards:
-        cheats_config = [
+        cheats_config: list[dict[str, Any]] = [
             {
                 "title": "🎯 AIMBOT & VISÉE ROBOTIQUE",
                 "accent_color": THEME["cheat_aimbot"],
                 "bg_color": THEME["cheat_aimbot_bg"],
-                "is_cheat": (aim_snap > 18.0 or aim_jerk > 30.0 or "AIMBOT" in flags_str),
-                "is_suspect": (aim_snap > 10.0 or aim_jerk > 18.0),
+                "is_cheat": ("AIMBOT" in flags_str),
+                "is_suspect": ("AIMBOT" in flags_str or "Jerk" in flags_str),
                 "metrics": [
                     f"• Snap instantané max : {aim_snap:.1f}°/tick (Seuil humain normal : < 8.0°)",
                     f"• Jerk angulaire max : {aim_jerk:.1f} (Seuil d'accélération brutale : > 25.0)",
@@ -603,8 +606,8 @@ class ReportModal(ctk.CTkToplevel):
                 "title": "👁️ WALLHACK / ESP (VISION TRANSPARENTE)",
                 "accent_color": THEME["cheat_wallhack"],
                 "bg_color": THEME["cheat_wallhack_bg"],
-                "is_cheat": (wh_cache > 15.0 or wh_track >= 10 or "WALLHACK" in flags_str or "LOCK" in flags_str),
-                "is_suspect": (wh_cache > 5.0 or wh_track >= 5),
+                "is_cheat": ("WALLHACK" in flags_str or "INFO-ESP" in flags_str or "LOCK" in flags_str),
+                "is_suspect": ("Track" in flags_str or "INFO-ESP" in flags_str),
                 "metrics": [
                     f"• Ratio verrous à travers murs : {wh_cache:.1f}% (Distribution normale : < 3.0%)",
                     f"• Verrous stricts centrés (±5°) : {wh_strict:.1f}%",
@@ -618,8 +621,8 @@ class ReportModal(ctk.CTkToplevel):
                 "title": "🐰 BUNNYHOP & SCRIPTS DE SAUT (AUTOMATION)",
                 "accent_color": THEME["cheat_bhop"],
                 "bg_color": THEME["cheat_bhop_bg"],
-                "is_cheat": ((bhop_ratio > 70.0 and bhop_chain >= 4) or "BHOP" in flags_str),
-                "is_suspect": (bhop_ratio > 40.0 and bhop_chain >= 3),
+                "is_cheat": ("BHOP" in flags_str and "Script" in flags_str),
+                "is_suspect": ("BHOP" in flags_str or "Chaîne" in flags_str),
                 "metrics": [
                     f"• Ratio sauts parfaits (1-tick) : {bhop_ratio:.1f}% (Plafond humain régulier : < 35%)",
                     f"• Chaîne maximale de sauts parfaits : {bhop_chain} sauts",
@@ -633,8 +636,8 @@ class ReportModal(ctk.CTkToplevel):
                 "title": "🌪️ SPINBOT & ANTI-AIM (DÉSYNCHRONISATION)",
                 "accent_color": THEME["cheat_spinbot"],
                 "bg_color": THEME["cheat_spinbot_bg"],
-                "is_cheat": (spin_speed > 90.0 or spin_pitch_viol > 0 or "SPINBOT" in flags_str or "PITCH" in flags_str),
-                "is_suspect": (spin_jitter > 2000.0 or spin_desync >= 32 or "ANTI-AIM" in flags_str),
+                "is_cheat": ("SPINBOT" in flags_str or "PITCH" in flags_str or "ANTI-AIM" in flags_str),
+                "is_suspect": ("ANTI-AIM" in flags_str or "Jitter" in flags_str),
                 "metrics": [
                     f"• Vitesse rotation Yaw continue : {spin_speed:.1f}°/tick (Seuil spin : > 90°/tick)",
                     f"• Violations Pitch hors-bornes : {spin_pitch_viol} tick(s)",
@@ -648,8 +651,8 @@ class ReportModal(ctk.CTkToplevel):
                 "title": "⚡ TRIGGERBOT & RÉFLEXES LATENCE ALIGNEMENTS (SUB-TICK)",
                 "accent_color": THEME["cheat_trigger"],
                 "bg_color": THEME["cheat_trigger_bg"],
-                "is_cheat": ((tb_shots >= 3 and tb_rt_med < 50.0) or "TRIGGERBOT" in flags_str),
-                "is_suspect": ((tb_shots >= 3 and tb_rt_std < 15.0) or tb_burst >= 1 or "TRIGGER" in flags_str),
+                "is_cheat": ("TRIGGERBOT" in flags_str or "TRIGGER" in flags_str),
+                "is_suspect": ("TRIGGERBOT" in flags_str or "TRIGGER" in flags_str),
                 "metrics": [
                     f"• Temps de réaction médian : {tb_rt_med:.1f} ms (Plafond humain : > 150 ms)" if tb_shots > 0 else "• Temps de réaction médian : Aucun tir ciblé",
                     f"• Écart-type des réactions : σ {tb_rt_std:.1f} ms (Régularité suspecte : < 15 ms)" if tb_shots > 0 else "• Écart-type : Données insuffisantes",
@@ -719,7 +722,8 @@ class ReportModal(ctk.CTkToplevel):
             met_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=4)
             met_frame.grid_columnconfigure(0, weight=1)
 
-            for m_i, m_text in enumerate(cinfo["metrics"]):
+            metrics_list: list[str] = cinfo["metrics"]
+            for m_i, m_text in enumerate(metrics_list):
                 lbl_m = ctk.CTkLabel(
                     met_frame,
                     text=m_text,

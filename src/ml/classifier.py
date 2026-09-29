@@ -73,27 +73,27 @@ FICHIER_MODELE = FICHIER_MODELE_CS2CD
 
 
 def extraire_vecteur_features(profil_aim, profil_bhop, profil_wh):
-    """Convertit les dictionnaires de métriques en vecteur numérique ordonné (15 features)."""
-    aim = profil_aim or {}
-    bhop = profil_bhop or {}
-    wh = profil_wh or {}
+    """Convertit les dictionnaires de métriques en vecteur numérique ordonné (15 features).
+    Lève une KeyError si une feature est manquante (pas d'invention de données)."""
+    if not profil_aim or not profil_bhop or not profil_wh:
+        raise ValueError("Profil incomplet (AVAILABLE / PARTIAL / UNAVAILABLE contract).")
 
     vecteur = [
-        float(aim.get("aim_vitesse_max", 0.0)),
-        float(aim.get("aim_p99", 0.0)),
-        float(aim.get("aim_jerk_moyen", 0.0)),
-        float(aim.get("aim_jerk_max", 0.0)),
-        float(aim.get("aim_ratio_micro_ajustements", 0.0)),
-        float(aim.get("aim_variance_vitesse", 0.0)),
-        float(bhop.get("bhop_total_sauts", 0)),
-        float(bhop.get("bhop_ratio_parfaits", 0.0)),
-        float(bhop.get("bhop_variance_sol", 50.0)),
-        float(bhop.get("bhop_chaine_max", 0)),
-        float(bhop.get("bhop_vitesse_moyenne", 0.0)),
-        float(wh.get("wh_ratio_lock_cache", 0.0)),
-        float(wh.get("wh_ratio_lock_strict", 0.0)),
-        float(wh.get("wh_tracking_consecutif_max", 0)),
-        float(wh.get("wh_distance_moyenne_verrous", 0.0)),
+        float(profil_aim["aim_vitesse_max"]),
+        float(profil_aim["aim_p99"]),
+        float(profil_aim["aim_jerk_moyen"]),
+        float(profil_aim["aim_jerk_max"]),
+        float(profil_aim["aim_ratio_micro_ajustements"]),
+        float(profil_aim["aim_variance_vitesse"]),
+        float(profil_bhop["bhop_total_sauts"]),
+        float(profil_bhop["bhop_ratio_parfaits"]),
+        float(profil_bhop["bhop_variance_sol"]),
+        float(profil_bhop["bhop_chaine_max"]),
+        float(profil_bhop["bhop_vitesse_moyenne"]),
+        float(profil_wh["wh_ratio_lock_cache"]),
+        float(profil_wh["wh_ratio_lock_strict"]),
+        float(profil_wh["wh_tracking_consecutif_max"]),
+        float(profil_wh["wh_distance_moyenne_verrous"]),
     ]
     return np.array(vecteur, dtype=np.float64)
 
@@ -182,16 +182,35 @@ def valider_bundle_modele(paquet: Any) -> bool:
     if "modele" not in paquet or "scaler" not in paquet:
         raise ValueError("Bundle incomplet : 'modele' et 'scaler' sont requis.")
 
+    modele = paquet["modele"]
+    scaler = paquet["scaler"]
+    expected_features = len(NOMS_FEATURES)
+
+    if not hasattr(modele, "n_features_in_") or modele.n_features_in_ != expected_features:
+        raise ValueError(f"Dimensions du modèle invalides: attendu {expected_features}")
+    if not hasattr(scaler, "n_features_in_") or scaler.n_features_in_ != expected_features:
+        raise ValueError(f"Dimensions du scaler invalides: attendu {expected_features}")
+
+    if hasattr(modele, "classes_"):
+        classes = list(modele.classes_)
+        if classes != [0, 1] and classes != ["0", "1"]:
+            raise ValueError(f"Classes du modèle invalides: attendu [0, 1], reçu {classes}")
+
     noms = paquet.get("noms_features")
     noms_normalises = normaliser_noms_features(noms)
     if not noms_normalises or noms_normalises != NOMS_FEATURES:
         raise ValueError(
-            f"Schéma de features incompatible. Attendu {len(NOMS_FEATURES)} features "
+            f"Schéma de features incompatible. Attendu {expected_features} features "
             f"({NOMS_FEATURES}), reçu {len(noms) if noms else 0} ({list(noms) if noms else []})."
         )
-    # Aligner le bundle en mémoire sur le schéma canonique (l'ordre et la signification
-    # des features sont identiques, seul l'ancien libellé changeait).
     paquet["noms_features"] = list(NOMS_FEATURES)
+
+    val_haut = paquet.get("threshold_high", paquet.get("threshold", 0.0))
+    seuil_haut = float(val_haut if val_haut is not None else 0.0)
+    val_susp = paquet.get("threshold_suspect", 0.0)
+    seuil_suspect = float(val_susp if val_susp is not None else 0.0)
+    if not (0.0 < seuil_suspect < seuil_haut <= 1.0):
+        raise ValueError(f"Seuils invalides: suspect={seuil_suspect}, haut={seuil_haut}")
 
     scaler = paquet["scaler"]
     modele = paquet["modele"]
@@ -493,7 +512,7 @@ def classifier_joueur(
     # individuel élevé sans AUCUN facteur biomécanique explicite ne suffit pas à
     # étiqueter un joueur SUSPECT ; en revanche la présence d'un facteur explicite
     # interdit de conclure "NON DÉTECTÉ" sur le seul score ML.
-    if has_rage or suspicion_score >= max(70.0, seuil_cheater) or len(facteurs) >= cfg.ml_critical_factors_cheater:
+    if has_rage or suspicion_score >= seuil_cheater or len(facteurs) >= cfg.ml_critical_factors_cheater:
         verdict = "SUSPICION ÉLEVÉE"
         statut = "high_suspicion"
     elif len(facteurs) >= cfg.ml_critical_factors_suspect or suspicion_score >= seuil_suspect:
@@ -579,17 +598,8 @@ class CheatClassifier:
         self.dataset_revision = self._bundle.get("dataset_revision", "Unknown")
         self.threshold_high = float(self._bundle.get("threshold_high", self._bundle.get("threshold", 0.80)))
         self.threshold_suspect = float(self._bundle.get("threshold_suspect", 0.40))
-        # Garde-fou de cohérence : éviter qu'un vieux bundle ne rende l'étiquette
-        # "suspicion élevée" inaccessible (seuil suspect >= seuil haut).
         if self.threshold_suspect >= self.threshold_high:
-            logger.warning(
-                "[ML] Seuils incohérents dans le bundle (suspect=%.2f >= high=%.2f) : "
-                "restauration des seuils par défaut 0.40 / 0.80.",
-                self.threshold_suspect,
-                self.threshold_high,
-            )
-            self.threshold_suspect = 0.40
-            self.threshold_high = 0.80
+            raise ValueError(f"Seuils incohérents dans le bundle (suspect={self.threshold_suspect} >= high={self.threshold_high})")
         self.is_loaded = True
 
     def get_fingerprint(self) -> str:
@@ -601,10 +611,20 @@ class CheatClassifier:
         h.update(str(self.threshold_high).encode())
         h.update(str(self.threshold_suspect).encode())
         h.update(FEATURE_SCHEMA_HASH.encode())
+
         # Check for bundle file hash if possible
         if self.model_path and os.path.exists(self.model_path):
             with open(self.model_path, 'rb') as f:
                 h.update(f.read())
+        else:
+            # Fallback : on hash le contenu binaire du bundle chargé
+            import io
+
+            import joblib
+            bio = io.BytesIO()
+            joblib.dump(self._bundle, bio)
+            h.update(bio.getvalue())
+
         return h.hexdigest()[:16]
 
 
@@ -617,24 +637,23 @@ class CheatClassifier:
         spinbot_metrics=None,
         triggerbot_metrics=None,
     ) -> ClassificationResult:
-        aim = aim_metrics or {}
-        bhop = bhop_metrics or {}
-        wh = wh_metrics or {}
-        spin = spinbot_metrics or {}
-        tb = triggerbot_metrics or {}
-
-        # Dictionnaires par défaut minimaux pour éviter les None
-        aim_in = aim if aim else {"aim_p99": 0, "aim_jerk_max": 0, "aim_jerk_moyen": 0, "aim_vitesse_max": 0, "aim_ratio_micro_ajustements": 0, "aim_variance_vitesse": 0}
-        bhop_in = bhop if bhop else {"bhop_total_sauts": 0, "bhop_ratio_parfaits": 0, "bhop_variance_sol": 50, "bhop_chaine_max": 0, "bhop_vitesse_moyenne": 0}
-        wh_in = wh if wh else {"wh_ratio_lock_cache": 0, "wh_ratio_lock_strict": 0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0}
-
         res_fr = classifier_joueur(
-            aim_in, bhop_in, wh_in,
+            profil_aim=aim_metrics,
+            profil_bhop=bhop_metrics,
+            profil_wh=wh_metrics,
             nom_joueur="Player",
-            profil_spin=spin,
-            profil_trigger=tb,
+            profil_spin=spinbot_metrics,
+            profil_trigger=triggerbot_metrics,
             paquet_existant=self._bundle,
         )
+
+        if res_fr is None:
+            return ClassificationResult(
+                verdict="UNAVAILABLE",
+                suspicion_score=0.0,
+                display_verdict="Détail indisponible",
+                analysis_status="insufficient_data"
+            )
 
         score = float(res_fr.get("suspicion_score", 0.0))
         m_score = float(res_fr.get("model_score", 0.0))

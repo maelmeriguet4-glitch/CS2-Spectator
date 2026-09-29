@@ -46,7 +46,7 @@ class BatchProcessor:
         self._stop_event.clear()
         
         # Clear queue
-        while not self.msg_queue.empty():
+        while True:
             try:
                 self.msg_queue.get_nowait()
             except queue.Empty:

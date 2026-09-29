@@ -81,25 +81,16 @@ def step_ruff() -> bool:
     )
 
 
-def step_mypy() -> None:
-    """Type-check informatif : le projet n'a pas de configuration mypy, l'étape n'est donc pas bloquante."""
+def step_mypy() -> bool:
+    """Type-check de l'ensemble du projet. Doit passer strictement."""
     print(f"\n[3/{NOMBRE_ETAPES}] Vérification Mypy...")
-    code, sortie = _lancer([sys.executable, "-m", "mypy", "--version"])
-    if code != 0:
-        _enregistrer(3, "Vérification Mypy", "SKIP", "mypy non installé")
-        return
-    version = sortie.strip().splitlines()[0] if sortie.strip() else "inconnue"
-    code, sortie = _lancer([sys.executable, "-m", "mypy", "src/"])
+    code, sortie = _lancer([sys.executable, "-m", "mypy", "src/", "tests/", "scripts/", "main.py"])
     if code == 0:
-        _enregistrer(3, "Vérification Mypy", "PASS", version)
-        return
-    _enregistrer(
-        3,
-        "Vérification Mypy",
-        "WARN",
-        "non bloquant : aucune section [tool.mypy] dans pyproject.toml",
-    )
+        _enregistrer(3, "Vérification Mypy", "PASS", "Aucune erreur de typage")
+        return True
+    _enregistrer(3, "Vérification Mypy", "FAIL", "Erreurs de typage détectées")
     _afficher_erreur(sortie, lignes=10)
+    return False
 
 
 def step_unit() -> bool:
@@ -140,11 +131,11 @@ def step_real_demo(with_demo: bool) -> bool:
     demo = os.path.join(DIR_RACINE, "demos", "test.dem")
     print(f"\n[7/{NOMBRE_ETAPES}] Analyse d'une vraie démo...")
     if not with_demo:
-        _enregistrer(7, "Analyse d'une vraie démo", "SKIP", "option --with-demo non activée")
-        return True
+        _enregistrer(7, "Analyse d'une vraie démo", "FAIL", "option --with-demo non activée (requise pour release)")
+        return False
     if not os.path.isfile(demo):
-        _enregistrer(7, "Analyse d'une vraie démo", "SKIP", "demos/test.dem absent")
-        return True
+        _enregistrer(7, "Analyse d'une vraie démo", "FAIL", "demos/test.dem absent (requis pour release)")
+        return False
     try:
         from src.core.engine import AntiCheatEngine
         from src.core.models import MatchAnalysisResult
@@ -238,8 +229,8 @@ def step_packaging() -> bool:
         return False
     dists = [d for d in ("CS2_AntiCheat", "CS2AntiCheat") if os.path.isdir(os.path.join(DIR_RACINE, "dist", d))]
     if not dists:
-        _enregistrer(11, "Vérification du Packaging (.spec / dist)", "WARN", "spec présente, aucun dist/ (lancer un build)")
-        return True
+        _enregistrer(11, "Vérification du Packaging (.spec / dist)", "FAIL", "spec présente, aucun dist/ (lancer un build au préalable)")
+        return False
     manquants = [
         nom
         for dist in dists
@@ -297,8 +288,8 @@ def main() -> int:
     bloquants = [
         step_syntax(),
         step_ruff(),
+        step_mypy(),
     ]
-    step_mypy()
     bloquants.extend([step_unit(), step_e2e(), step_mocks(), step_real_demo(args.with_demo)])
     bloquants.extend([step_cs2cd_fixtures(), step_ml_validation(), step_schema_hash(), step_packaging()])
     bloquants.extend([step_smoke_test(), step_build(args.with_build)])

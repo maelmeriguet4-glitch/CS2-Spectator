@@ -74,8 +74,11 @@ def analyser_wallhack(demo_ou_chemin, joueur_cible):
     ennemis['distance'] = dist_3d
 
     # ISOLATION : Uniquement les ennemis NON VISIBLES
-    est_visible = ennemis['spotted'].fillna(False).astype(bool)
-    ennemis_caches = ennemis[~est_visible].copy()
+    # Ne pas considérer les données absentes (NaN) comme False.
+    if 'spotted' not in ennemis.columns or ennemis['spotted'].isnull().all():
+        return PROFIL_WH_VIDE.copy()
+
+    ennemis_caches = ennemis[~ennemis['spotted']].copy()
 
     if ennemis_caches.empty:
         return PROFIL_WH_VIDE.copy()
@@ -112,8 +115,8 @@ def analyser_wallhack(demo_ou_chemin, joueur_cible):
     if not locks_stricts.empty:
         locks_tries = locks_stricts.sort_values(by=['name', 'tick']).copy()
 
-        delta_yaw_j = locks_tries['yaw'].diff().abs()
-        delta_x_e = locks_tries['X_e'].diff().abs()
+        delta_yaw_j = locks_tries.groupby('name')['yaw'].diff().abs()
+        delta_x_e = locks_tries.groupby('name')['X_e'].diff().abs()
 
         locks_tries['est_actif'] = (delta_yaw_j > 0.1) | (delta_x_e > 1.0)
         locks_actifs = locks_tries[locks_tries['est_actif']].copy()
@@ -203,7 +206,7 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
                 user_ticks = all_ticks[all_ticks['name'] == name]
             if user_ticks.empty:
                 return WallhackResult(metrics={"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}, flagged_locks=[])
-            
+
             user_steamid = str(user_ticks.iloc[0].get('steamid', identifier))
             user_name = str(user_ticks.iloc[0].get('name', identifier))
             enemy_ticks = all_ticks[
@@ -215,7 +218,7 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
                 enemy_ticks = enemy_ticks[enemy_ticks['team_num'] != user_team]
             if enemy_ticks.empty:
                 return WallhackResult(metrics={"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}, flagged_locks=[])
-            
+
             merged = pd.merge(
                 user_ticks[['tick','X','Y','Z','pitch','yaw']].rename(columns={'X':'X_j','Y':'Y_j','Z':'Z_j','pitch':'pitch_j','yaw':'yaw_j'}),
                 enemy_ticks[['tick','steamid','name','X','Y','Z','spotted']].rename(columns={'X':'X_e','Y':'Y_e','Z':'Z_e','spotted':'spotted_e'}),
@@ -223,12 +226,12 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
             )
             if merged.empty:
                 return WallhackResult(metrics={"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}, flagged_locks=[])
-            
+
             # Filter non visible (spotted == False)
             occluded = merged[~merged['spotted_e'].astype(bool)].copy()
             if occluded.empty:
                 return WallhackResult(metrics={"wh_ratio_lock_cache": 0.0, "wh_ratio_lock_strict": 0.0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0.0}, flagged_locks=[])
-            
+
             dx = occluded['X_e'] - occluded['X_j']
             dy = occluded['Y_e'] - occluded['Y_j']
             dz = occluded['Z_e'] - occluded['Z_j']
@@ -239,11 +242,11 @@ def analyze_wallhack(demo_data_or_path, identifier: str) -> WallhackResult:
             delta_yaw = (yaw_th - occluded['yaw_j'] + 180) % 360 - 180
             delta_pitch = pitch_th - occluded['pitch_j']
             ecart = np.sqrt(delta_yaw**2 + delta_pitch**2)
-            
+
             occluded['ecart'] = ecart
             occluded['dist_2d'] = dist_2d
             occluded['dist'] = dist_3d
-            
+
             # Range filter: 200 to 2000 units on planar distance
             in_range = occluded[(occluded['dist_2d'] >= 200.0) & (occluded['dist_2d'] <= 2000.0)]
             locks_strict = in_range[in_range['ecart'] < 2.5]

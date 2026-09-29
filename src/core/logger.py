@@ -28,7 +28,7 @@ def _get_log_dir() -> str:
 _LOG_DIR = _get_log_dir()
 _LOG_FILE = os.path.join(_LOG_DIR, "cs2_anticheat.log")
 
-_loggers = {}
+_loggers: dict = {}
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """Crée ou retourne un logger structuré avec rotation de fichier.
