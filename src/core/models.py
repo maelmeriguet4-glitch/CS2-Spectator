@@ -59,7 +59,7 @@ class PlayerTelemetry:
     spinbot_metrics: Dict[str, float] = field(default_factory=dict)
     triggerbot_metrics: Dict[str, float] = field(default_factory=dict)
     suspicion_score: float = 0.0  # 0.0 to 100.0
-    verdict: str = "CLEAN"  # "CLEAN", "SUSPECT", "CHEATER", "ERROR", "INSUFFICIENT_DATA"
+    verdict: str = "INSUFFICIENT_DATA"  # "CLEAN", "SUSPECT", "CHEATER", "ERROR", "INSUFFICIENT_DATA"
     analysis_status: str = "ok"  # "ok", "insufficient_data", "error"
     data_quality: str = "good"  # "good", "partial", "insufficient"
     player_id: str = ""  # Identifiant interne (ex: Player_1 ou steamid)
@@ -97,8 +97,9 @@ class PlayerTelemetry:
             if self.analysis_status not in {"insufficient_data", "error"}:
                 self.analysis_status = "ok"
         else:
-            self.verdict = "CLEAN"
-            self.analysis_status = "ok"
+            self.verdict = "ERROR"
+            self.analysis_status = "error"
+            self.data_quality = "insufficient"
 
     @property
     def is_valid_steamid(self) -> bool:
@@ -164,9 +165,9 @@ class MatchAnalysisResult:
     duration_seconds: float
     players: List[PlayerTelemetry]
     global_verdict: str
-    engine_version: str = "3.1.0"
+    engine_version: str = "2.4.2"
     model_type: str = "cs2cd"
-    model_version: str = "2.4.1"
+    model_version: str = "2.4.2"
     feature_schema_version: str = "1.0"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -194,8 +195,8 @@ class MatchAnalysisResult:
             duration_seconds=data.get("duration_seconds", 0.0),
             players=[PlayerTelemetry.from_dict(p) for p in data.get("players", [])],
             global_verdict=data.get("global_verdict", "AUCUN SIGNAL FORT DÉTECTÉ"),
-            engine_version=data.get("engine_version", "3.1.0"),
+            engine_version=data.get("engine_version", "2.4.2"),
             model_type=data.get("model_type", "cs2cd"),
-            model_version=data.get("model_version", "2.4.1"),
+            model_version=data.get("model_version", "2.4.2"),
             feature_schema_version=data.get("feature_schema_version", "1.0"),
         )

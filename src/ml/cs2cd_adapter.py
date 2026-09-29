@@ -7,7 +7,8 @@ en exposant strictement l'interface attendue par les analyseurs de CS2 Spectator
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
@@ -24,20 +25,10 @@ COLONNES_CRITIQUES = [
     "yaw",
 ]
 
-# Colonnes optionnelles avec valeurs neutres documentées
-COLONNES_OPTIONNELLES: Dict[str, Any] = {
-    "team_num": 0,
-    "health": 100,
-    "spotted": False,
-    "velocity_X": 0.0,
-    "velocity_Y": 0.0,
-    "velocity_Z": 0.0,
-    "is_airborne": False,
-    "active_weapon_name": "weapon_unknown",
-    "shots_fired": 0,
-}
+# Les colonnes optionnelles ne doivent plus avoir de valeurs par défaut inventées.
+COLONNES_OPTIONNELLES = ["team_num", "health", "spotted", "velocity_X", "velocity_Y", "is_airborne", "active_weapon_name", "shots_fired"]
 
-COLONNES_REQUISES_TICKS = COLONNES_CRITIQUES + list(COLONNES_OPTIONNELLES.keys())
+COLONNES_REQUISES_TICKS = COLONNES_CRITIQUES + COLONNES_OPTIONNELLES
 
 
 class CS2CDAdapter:
@@ -123,21 +114,29 @@ class CS2CDAdapter:
             if df is None or df.empty:
                 return
 
-            # Compléter uniquement les colonnes optionnelles avec leurs valeurs neutres documentées
-            for col, val_defaut in COLONNES_OPTIONNELLES.items():
-                if col not in df.columns:
-                    df[col] = val_defaut
+            # Ne plus inventer de données pour les colonnes optionnelles manquantes.
+            # On stocke l'information des colonnes disponibles pour les capacités des analyseurs.
+            self.available_columns = set(df.columns)
 
-            # Normaliser types et valeurs
-            df["tick"] = pd.to_numeric(df["tick"], errors="coerce").fillna(0).astype(int)
-            df["steamid"] = df["steamid"].astype(str).str.strip()
-            df["name"] = df["steamid"]  # Couche identité interne
-            df["health"] = pd.to_numeric(df["health"], errors="coerce").fillna(100)
-            df["team_num"] = pd.to_numeric(df["team_num"], errors="coerce").fillna(0).astype(int)
+            # Normaliser types et valeurs UNIQUEMENT si elles existent
+            if "tick" in df.columns:
+                df["tick"] = pd.to_numeric(df["tick"], errors="coerce")
+            if "steamid" in df.columns:
+                df["steamid"] = df["steamid"].astype(str).str.strip()
+                df["name"] = df["steamid"]
+            if "health" in df.columns:
+                df["health"] = pd.to_numeric(df["health"], errors="coerce")
+            if "team_num" in df.columns:
+                df["team_num"] = pd.to_numeric(df["team_num"], errors="coerce")
 
-            # Nettoyer Inf / NaN dans les colonnes numériques
-            num_cols = df.select_dtypes(include=[np.number]).columns
-            df[num_cols] = df[num_cols].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            # Nettoyer Inf / NaN dans les colonnes critiques sans remplacer par 0.0
+            critiques_num = ["X", "Y", "Z", "pitch", "yaw", "tick"]
+            cols_to_check = [c for c in critiques_num if c in df.columns]
+            df[cols_to_check] = df[cols_to_check].replace([np.inf, -np.inf], np.nan)
+            df = df.dropna(subset=cols_to_check)
+            
+            if "tick" in df.columns:
+                df["tick"] = df["tick"].astype(int)
 
             # Ordonnancement chronologique strict & déduplication tick-joueur
             df = df.sort_values(by=["tick", "steamid"]).drop_duplicates(subset=["tick", "steamid"]).reset_index(drop=True)
@@ -149,8 +148,11 @@ class CS2CDAdapter:
             self.joueurs = [j for j in joueurs_trouves if j and j != "0" and j != "Player_Unknown"]
 
             for p in self.joueurs:
-                p_teams = df[df["steamid"] == p]["team_num"]
-                team_val = int(p_teams.mode().iloc[0]) if not p_teams.empty and not p_teams.mode().empty else 0
+                team_val = 0
+                if "team_num" in df.columns:
+                    p_teams = df[df["steamid"] == p]["team_num"]
+                    team_val = int(p_teams.mode().iloc[0]) if not p_teams.empty and not p_teams.mode().empty else 0
+                
                 self.joueurs_info[p] = {
                     "player_id": p,
                     "name": p,
@@ -291,8 +293,12 @@ class CS2CDAdapter:
         if df_p.empty:
             return pd.DataFrame()
 
-        # Filtrer health > 0
-        df_alive = df_p[df_p["health"] > 0].copy()
+        # Filtrer health > 0 si la colonne existe
+        if "health" in df_p.columns:
+            df_alive = df_p[df_p["health"] > 0].copy()
+        else:
+            df_alive = df_p.copy()
+            
         if df_alive.empty:
             df_alive = df_p.copy()
 

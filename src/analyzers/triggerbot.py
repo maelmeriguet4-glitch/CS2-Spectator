@@ -125,7 +125,7 @@ def _get_weapon_fires(demo_data, user_name):
     if not fires and hasattr(demo_data, 'ticks') and 'is_firing' in demo_data.ticks.columns:
         ticks = demo_data.ticks
         user_ticks = ticks[ticks['name'] == user_name]
-        firing_ticks = user_ticks[user_ticks['is_firing'] == True]
+        firing_ticks = user_ticks[user_ticks['is_firing'].astype(bool)]
         
         # Get only the first tick of each burst
         if not firing_ticks.empty:
@@ -139,7 +139,7 @@ def _get_weapon_fires(demo_data, user_name):
 
 def analyser_triggerbot(demo_ou_chemin, joueur_cible):
     """
-    Détecte les temps de réaction inhumains caractéristiques d'un triggerbot.
+    Détecte les temps de réaction latence alignements caractéristiques d'un triggerbot.
     """
     demo_data = charger_demo(demo_ou_chemin) if not hasattr(demo_ou_chemin, 'ticks') else demo_ou_chemin
     if not getattr(demo_data, 'valide', True) and not getattr(demo_data, 'is_valid', True):
@@ -150,7 +150,10 @@ def analyser_triggerbot(demo_ou_chemin, joueur_cible):
         return PROFIL_TB_VIDE.copy()
 
     nom_joueur = _resolve_name_triggerbot(demo_data, joueur_cible)
-    donnees_joueur = ticks[(ticks['name'] == nom_joueur) & (ticks['health'] > 0)]
+    if 'health' in ticks.columns:
+        donnees_joueur = ticks[(ticks['name'] == nom_joueur) & (ticks['health'] > 0)]
+    else:
+        donnees_joueur = ticks[ticks['name'] == nom_joueur]
     if donnees_joueur.empty:
         return PROFIL_TB_VIDE.copy()
 
@@ -158,7 +161,10 @@ def analyser_triggerbot(demo_ou_chemin, joueur_cible):
     if not tirs:
         return PROFIL_TB_VIDE.copy()
 
-    autres_joueurs = ticks[(ticks['name'] != nom_joueur) & (ticks['health'] > 0)]
+    if 'health' in ticks.columns:
+        autres_joueurs = ticks[(ticks['name'] != nom_joueur) & (ticks['health'] > 0)]
+    else:
+        autres_joueurs = ticks[ticks['name'] != nom_joueur]
     if autres_joueurs.empty:
         return PROFIL_TB_VIDE.copy()
 
@@ -207,8 +213,10 @@ def analyser_triggerbot(demo_ou_chemin, joueur_cible):
                 hj_row = historique_idx.loc[t_hist]
                 he_row = historique_ennemis_idx.loc[t_hist]
                 
-                if isinstance(hj_row, pd.DataFrame): hj_row = hj_row.iloc[0]
-                if isinstance(he_row, pd.DataFrame): he_row = he_row.iloc[0]
+                if isinstance(hj_row, pd.DataFrame):
+                    hj_row = hj_row.iloc[0]
+                if isinstance(he_row, pd.DataFrame):
+                    he_row = he_row.iloc[0]
                 
                 if _check_intersection(hj_row['X'], hj_row['Y'], hj_row['Z'], hj_row['yaw'], hj_row['pitch'], he_row['X'], he_row['Y'], he_row['Z'], radius=16.0):
                     first_aligned_tick = t_hist

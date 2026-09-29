@@ -11,7 +11,7 @@ from src.core.models import MatchAnalysisResult, PlayerTelemetry, ReplayInfo
 
 QCM_OPTIONS: List[str] = [
     "Visée anormale à travers les fumigènes / murs (Pre-aiming & Wallhack)",
-    "Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)",
+    "Snaps instantanés et verrouillage de tête latence alignement (Aimbot / Silent Aim)",
     "Compensations de recul parfaites sans dispersion (No-Recoil / Macro)",
     "Sauts parfaits 1-tick en chaîne et prises de vitesse (Bunnyhop Script)",
     "Prises d'informations impossibles et pré-tirs systématiques (Radar / ESP)",
@@ -77,7 +77,7 @@ class ReportGenerator:
         wh = player.wh_metrics or {}
 
         # Aim metrics
-        aim_snap_max = float(aim.get("aim_snap_max", 0.0))
+        aim_p99 = float(aim.get("aim_p99", 0.0))
         aim_jerk_max = float(aim.get("aim_jerk_max", 0.0))
         aim_jerk_moyen = float(aim.get("aim_jerk_moyen", 0.0))
         aim_vitesse_max = float(aim.get("aim_vitesse_max", 0.0))
@@ -98,7 +98,7 @@ class ReportGenerator:
         wh_dist_avg = float(wh.get("wh_distance_moyenne_verrous", 0.0))
 
         return {
-            "aim_snap_max": aim_snap_max,
+            "aim_p99": aim_p99,
             "aim_jerk_max": aim_jerk_max,
             "aim_jerk_moyen": aim_jerk_moyen,
             "aim_vitesse_max": aim_vitesse_max,
@@ -133,7 +133,7 @@ class ReportGenerator:
             f"Contexte : Carte {ctx['map_name']} | Démo : {ctx['demo_filename']}",
             "",
             "1. CINÉTIQUE DE VISÉE (AIMBOT TELEMETRY) :",
-            f"  • Vitesse angulaire max (Snap) : {m['aim_snap_max']:.1f}°/tick [Humain réf. 10-15°/tick]",
+            f"  • Vitesse angulaire max (Snap) : {m['aim_p99']:.1f}°/tick [Humain réf. 10-15°/tick]",
             f"  • Vitesse angulaire brute max  : {m['aim_vitesse_max']:.1f}°/s",
             f"  • Jerk angulaire max           : {m['aim_jerk_max']:.1f} (Moyen : {m['aim_jerk_moyen']:.1f})",
             "",
@@ -244,10 +244,10 @@ OBSERVATIONS EN MATCH :
 {qcm_text}
 
 PREUVES TÉLÉMÉTRIQUES OBJECTIVES (Source 2 DemoParser) :
-- Vitesse angulaire max (Snap) : {m['aim_snap_max']:.1f}°/tick (Seuil humain : 10-15°/tick)
+- Vitesse angulaire max (Snap) : {m['aim_p99']:.1f}°/tick (Seuil humain : 10-15°/tick)
 - À-coups mécaniques (Jerk max) : {m['aim_jerk_max']:.1f}
 - Ratio de BunnyHop parfait 1-tick : {m['bhop_ratio']:.1f}% sur {m['bhop_total']} sauts (Chaîne max : {m['bhop_chain']})
-- Lock de visée à travers les murs (Ray-Cast) : {m['wh_lock_strict']:.1f}% du temps caché
+- Lock de visée à travers les murs (alignement cible non visible) : {m['wh_lock_strict']:.1f}% du temps caché
 - Suivi continu à travers géométrie : {m['wh_track_max']} ticks consécutifs{incident_section}
 
 Commentaires de l'auditeur :
@@ -315,7 +315,7 @@ Replay File: {ctx['demo_filename']}
 
 2. QUANTITATIVE BIOMECHANICAL AUDIT:
 - Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict})
-- Max Angular Snap Velocity: {m['aim_snap_max']:.1f} deg/tick (Human baseline: 10-15 deg/tick)
+- Max Angular Snap Velocity: {m['aim_p99']:.1f} deg/tick (Human baseline: 10-15 deg/tick)
 - Angular Jerk Index: {m['aim_jerk_max']:.1f} (Mean: {m['aim_jerk_moyen']:.1f})
 - Perfect 1-Tick Ground Jump Transition: {m['bhop_ratio']:.1f}% on {m['bhop_total']} jumps (Max Chain: {m['bhop_chain']})
 - Occluded 3D Eye-Ray Alignment: {m['wh_lock_strict']:.1f}% of unspotted ticks

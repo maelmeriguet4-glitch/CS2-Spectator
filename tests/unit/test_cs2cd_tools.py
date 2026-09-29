@@ -15,21 +15,20 @@ import os
 import shutil
 import tempfile
 import unittest
+
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
 
-from src.ml.cs2cd_adapter import CS2CDAdapter, COLONNES_REQUISES_TICKS
+from scripts.index_cs2cd import index_dataset
 from src.ml.classifier import (
     FICHIER_MODELE_CS2CD,
-    FICHIER_MODELE_SYNTHETIQUE,
     NOMS_FEATURES,
     CheatClassifier,
     ClassificationResult,
     charger_ou_entrainer_modele,
-    extraire_vecteur_features,
 )
-from scripts.index_cs2cd import index_dataset
+from src.ml.cs2cd_adapter import CS2CDAdapter
 
 
 class TestCS2CDAdapter(unittest.TestCase):
@@ -121,9 +120,8 @@ class TestCS2CDAdapter(unittest.TestCase):
         self.assertTrue(adapter.is_valid)
         ticks = adapter.get_player_ticks("Player_A")
         self.assertIn("pitch", ticks.columns)
-        self.assertIn("is_airborne", ticks.columns)
-        self.assertFalse(ticks["is_airborne"].iloc[0])
-        self.assertEqual(ticks["health"].iloc[0], 100)
+        self.assertNotIn("is_airborne", ticks.columns)
+        self.assertNotIn("health", ticks.columns)
 
     def test_adapter_missing_critical_columns_rejected(self):
         # Un fichier sans colonnes critiques (X, Y, Z, pitch, yaw) doit être rejeté
@@ -165,7 +163,12 @@ class TestCS2CDDatasetIndexing(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_indexing_produces_manifest(self):
-        df = index_dataset(dataset_root=self.root, output_csv=self.output_csv, random_state=42)
+        df = index_dataset(
+            dataset_root=self.root,
+            output_csv=self.output_csv,
+            random_state=42,
+            example_output_csv=os.path.join(self.temp_dir, "manifest.example.csv"),
+        )
         self.assertIsNotNone(df)
         self.assertEqual(len(df), 2)
         self.assertTrue(os.path.exists(self.output_csv))
@@ -257,7 +260,7 @@ class TestBundleThresholdAtRuntime(unittest.TestCase):
         """Un score >25% avec threshold=0.25 doit donner CHEATER, pas CLEAN."""
         classifier = CheatClassifier(model_path=self.fake_model_path)
         # Profils aimbot suspects mais pas extrêmes
-        aim = {"aim_snap_max": 20.0, "aim_jerk_max": 10.0}
+        aim = {"aim_p99": 20.0, "aim_jerk_max": 10.0}
         bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.1}
         wh = {"wh_ratio_lock_strict": 0.02, "wh_tracking_consecutif_max": 5}
         res = classifier.predict(aim, bhop, wh)
@@ -306,7 +309,7 @@ class TestPrudentVerdictTerminology(unittest.TestCase):
         """Le classifier FR ne doit jamais retourner de verdict affirmatif."""
         from src.ml.classifier import classifier_joueur
         # Profils extrêmes pour déclencher SUSPICION ÉLEVÉE
-        aim = {"aim_snap_max": 50.0, "aim_jerk_max": 100.0}
+        aim = {"aim_p99": 50.0, "aim_jerk_max": 100.0}
         bhop = {"bhop_total_sauts": 50, "bhop_ratio_parfaits": 0.95, "bhop_chaine_max": 8}
         wh = {"wh_ratio_lock_strict": 0.30, "wh_tracking_consecutif_max": 150}
         res = classifier_joueur(aim, bhop, wh, nom_joueur="TestPlayer")
@@ -314,18 +317,18 @@ class TestPrudentVerdictTerminology(unittest.TestCase):
         verdict = res["verdict"]
         for terme in self.TERMES_INTERDITS:
             self.assertNotIn(terme, verdict, f"Terme interdit '{terme}' trouvé dans le verdict")
-        # Le verdict doit être SUSPICION ÉLEVÉE, pas TRICHE AVÉRÉE
+        # Le verdict doit être SUSPICION ÉLEVÉE, pas SUSPICION ÉLEVÉE
         self.assertEqual(verdict, "SUSPICION ÉLEVÉE")
 
     def test_clean_verdict_prudent(self):
-        """Un joueur clean doit avoir le verdict LÉGITIME, pas 'MATCH INTÈGRE'."""
+        """Un joueur clean doit avoir le verdict NON DÉTECTÉ, pas 'MATCH INTÈGRE'."""
         from src.ml.classifier import classifier_joueur
-        aim = {"aim_snap_max": 3.0, "aim_jerk_max": 5.0}
+        aim = {"aim_p99": 3.0, "aim_jerk_max": 5.0}
         bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.05}
         wh = {"wh_ratio_lock_strict": 0.01, "wh_tracking_consecutif_max": 2}
         res = classifier_joueur(aim, bhop, wh, nom_joueur="CleanPlayer")
         self.assertIsNotNone(res)
-        self.assertEqual(res["verdict"], "LÉGITIME")
+        self.assertEqual(res["verdict"], "NON DÉTECTÉ")
 
 
 class TestSuspicionScoresAPI(unittest.TestCase):
@@ -367,7 +370,7 @@ class TestCriticallyIncompleteData(unittest.TestCase):
             pd.DataFrame({"random_col": [1, 2]}).to_parquet(p_path)
             with open(j_path, "w") as f:
                 json.dump({}, f)
-            adapter = CS2CDAdapter(p_path, j_path)
+            CS2CDAdapter(p_path, j_path)
             # L'adapter ne crash pas mais ne devrait pas valider sans steamid
             # (tick manquant aussi rempli par défaut 0)
         finally:

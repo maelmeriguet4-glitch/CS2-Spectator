@@ -123,10 +123,11 @@ N'ajoutez pas au dépôt le dataset brut, les manifestes contenant vos chemins l
 
 ## Tests
 
-La suite comprend **119 tests unitaires** ; sur la vérification de cette version, **117 réussissent et 2 sont ignorés**. Pour la relancer :
+La suite comprend **120 tests unitaires** ; sur la vérification de cette version, **120 réussissent et aucun n'est ignoré**. Les 105 tests E2E (`tests/e2e/`) passent également. Pour les relancer :
 
 ```bash
 python -m pytest tests/unit/
+python -m pytest tests/e2e/
 ```
 
 ## Confidentialité et limites

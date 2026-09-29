@@ -6,7 +6,7 @@ Version moteur utilisée pour l'invalidation du cache.
 
 from dataclasses import dataclass
 
-ENGINE_VERSION = "3.1.0"
+ENGINE_VERSION = "2.4.2"
 
 @dataclass
 class AnalysisConfig:

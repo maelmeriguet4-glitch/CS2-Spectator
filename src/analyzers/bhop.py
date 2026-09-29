@@ -4,6 +4,9 @@ Analyse biomécanique des sauts : transitions tick-perfect, chaînes, vitesse.
 Refactoré depuis bhop_advanced.py.
 """
 
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
@@ -118,10 +121,6 @@ def analyser_bhop(demo_ou_chemin, joueur_cible):
     }
 
     return profil_bhop
-
-
-from dataclasses import dataclass, field
-from typing import Any, Dict, List
 
 
 @dataclass
@@ -248,7 +247,8 @@ def analyze_bhop(demo_data_or_path, identifier: str) -> BhopResult:
             }
             return BhopResult(metrics=metrics, flagged_chains=chains)
         except Exception:
-            import traceback; traceback.print_exc()
+            import traceback
+            traceback.print_exc()
     name = _resolve_name_bhop(demo_data, identifier) if is_valid else identifier
     # ensure demo_data is DemoData-like for FR
     if not hasattr(demo_data, 'valide'):

@@ -158,8 +158,8 @@ class TestPackagingUnit(unittest.TestCase):
             "scripts/index_cs2cd.py",
             "scripts/train_cs2cd.py",
             "python -m pytest tests/unit/",
-            "119 tests unitaires",
-            "117 réussissent et 2 sont ignorés",
+            "120 tests unitaires",
+            "120 réussissent et aucun n'est ignoré",
             "2.4.1",
             "Signaler un problème",
         ]

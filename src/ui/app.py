@@ -16,10 +16,10 @@ _DIR_RACINE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__
 if _DIR_RACINE not in sys.path:
     sys.path.insert(0, _DIR_RACINE)
 
+from src.core.batch_processor import BatchProcessor
 from src.core.engine import AntiCheatEngine
 from src.core.logger import setup_logger
 from src.core.models import MatchAnalysisResult, PlayerTelemetry
-from src.core.batch_processor import BatchProcessor
 from src.ui.components.header import MatchHeader
 from src.ui.components.player_card import PlayerCard as NewPlayerCard
 from src.ui.components.replays_panel import ReplaysPanel
@@ -43,7 +43,7 @@ class CS2AntiCheatApp(ctk.CTk):
     Features modern dark cyber layout, async parsing, rich cards, and reporting modal.
     """
 
-    def __init__(self):
+    def __init__(self, model_path=None, model_type=None):
         super().__init__()
         apply_dark_theme()
         self.title("CS2 Anti-Cheat // Tactical Replay Inspection")
@@ -56,7 +56,7 @@ class CS2AntiCheatApp(ctk.CTk):
         self._current_result = None
         self._player_cards: list[NewPlayerCard] = []
 
-        self.engine = AntiCheatEngine()
+        self.engine = AntiCheatEngine(model_path=model_path, model_type=model_type)
         self.batch_processor = BatchProcessor(self.engine)
 
         self._build_layout()

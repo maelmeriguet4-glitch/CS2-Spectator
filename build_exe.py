@@ -3,9 +3,10 @@ CS2 Anti-Cheat — Script de compilation en exécutable (.exe)
 Utilise PyInstaller pour créer un exécutable Windows standalone.
 """
 
+import importlib.util
+import os
 import subprocess
 import sys
-import os
 
 if sys.platform == "win32":
     try:
@@ -33,12 +34,14 @@ def get_pyinstaller_args(target_script="main.py", app_name="CS2AntiCheat", model
     # hidden imports
     for hi in ["watchdog", "pyperclip", "sklearn", "joblib", "pandas", "numpy", "PIL", "darkdetect", "reportlab"]:
         args.append(f"--hidden-import={hi}")
-    # model files
+    # model files : toujours embarquer les bundles disponibles (CS2CD + synthétique)
     sep = ";" if os.name == "nt" else ":"
-    if model_file:
-        args.extend(["--add-data", f"{model_file}{sep}."])
-    if os.path.exists("cerveau_vac_cs2cd.pkl") and model_file != "cerveau_vac_cs2cd.pkl":
-        args.extend(["--add-data", f"cerveau_vac_cs2cd.pkl{sep}."])
+    modeles = [model_file] if model_file else []
+    for modele in ("cerveau_vac_cs2cd.pkl", "cerveau_vac_custom.pkl"):
+        if os.path.exists(modele) and modele not in modeles:
+            modeles.append(modele)
+    for modele in modeles:
+        args.extend(["--add-data", f"{modele}{sep}."])
     # target script at end
     if target_script:
         args.append(target_script)
@@ -50,13 +53,8 @@ def verify_build_environment():
     repo = os.path.dirname(os.path.abspath(__file__))
     target_exists = os.path.isfile(os.path.join(repo, "main.py"))
     model_exists = os.path.isfile(os.path.join(repo, "cerveau_vac_cs2cd.pkl")) or os.path.isfile(os.path.join(repo, "cerveau_vac_custom.pkl"))
-    try:
-        import PyInstaller
-        pyinstaller_installed = True
-        print("PyInstaller installé           : [OK]")
-    except ImportError:
-        pyinstaller_installed = False
-        print("PyInstaller installé           : [MANQUANT]")
+    pyinstaller_installed = importlib.util.find_spec("PyInstaller") is not None
+    print(f"PyInstaller installé           : {'[OK]' if pyinstaller_installed else '[MANQUANT]'}")
 
     for dep in ["customtkinter   ", "demoparser2     "]:
         mod = dep.strip()
@@ -75,6 +73,29 @@ def verify_build_environment():
     }
 
 
+def _copy_models_to_dist(modeles):
+    """Copie les bundles .pkl à la racine du dossier dist pour le mode standalone et les tests de packaging."""
+    import shutil
+    dist_dirs = [
+        os.path.join("dist", "CS2_AntiCheat"),
+        os.path.join("dist", "CS2AntiCheat"),
+    ]
+    copies = []
+    for dist_dir in dist_dirs:
+        if not os.path.isdir(dist_dir):
+            continue
+        for modele in modeles:
+            if not os.path.exists(modele):
+                continue
+            try:
+                target = os.path.join(dist_dir, os.path.basename(modele))
+                shutil.copy2(modele, target)
+                copies.append(target)
+            except OSError as exc:
+                print(f"[AVERTISSEMENT] Copie impossible vers {dist_dir}: {exc}")
+    return copies
+
+
 def build(verify_only=False, **kwargs):
     """Lance la compilation PyInstaller. Si verify_only True, dry-run."""
     if verify_only:
@@ -85,9 +106,7 @@ def build(verify_only=False, **kwargs):
         else:
             print("[ÉCHEC] Environnement incomplet.")
             return 1
-    try:
-        import PyInstaller
-    except ImportError:
+    if importlib.util.find_spec("PyInstaller") is None:
         print("[!] PyInstaller non trouvé. Veuillez l'installer via vos dépendances (pyproject.toml).")
         sys.exit(1)
 
@@ -119,6 +138,10 @@ def build(verify_only=False, **kwargs):
     env["PYTHONIOENCODING"] = "utf-8"
     subprocess.run(full_cmd, check=True, env=env)
 
+    copies = _copy_models_to_dist(["cerveau_vac_cs2cd.pkl", "cerveau_vac_custom.pkl"])
+    for target in copies:
+        print(f"[OK] Bundle ML copié : {target}")
+
     print()
     print("=" * 60)
     print("[OK] Compilation terminee !")
@@ -129,7 +152,8 @@ def build(verify_only=False, **kwargs):
 
 if __name__ == "__main__":
     import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument("--verify-only", action="store_true")
+    p = argparse.ArgumentParser(description="Compiler CS2 Anti-Cheat en exécutable standalone.")
+    p.add_argument("--verify-only", action="store_true", help="Vérifier l'environnement sans compiler")
+    p.add_argument("--onefile", action="store_true", help="Produire un exécutable unique (--onefile)")
     args = p.parse_args()
-    sys.exit(build(verify_only=args.verify_only))
+    sys.exit(build(verify_only=args.verify_only, onefile=args.onefile))

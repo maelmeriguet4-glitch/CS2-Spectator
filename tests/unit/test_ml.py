@@ -29,14 +29,14 @@ class TestCheatClassifier(unittest.TestCase):
         self.assertEqual(classifier.feature_names, FEATURE_NAMES)
 
     def test_feature_vector_extraction(self):
-        aim = {"aim_vitesse_max": 15.0, "aim_snap_max": 4.5}
+        aim = {"aim_vitesse_max": 15.0, "aim_p99": 4.5}
         bhop = {"bhop_total_sauts": 30, "bhop_ratio_parfaits": 0.1}
         wh = {"wh_ratio_lock_cache": 0.05}
 
         vec = extract_feature_vector(aim, bhop, wh)
         self.assertEqual(len(vec), 15)
         self.assertEqual(vec[0], 15.0)  # aim_vitesse_max
-        self.assertEqual(vec[1], 4.5)   # aim_snap_max
+        self.assertEqual(vec[1], 4.5)   # aim_p99
         self.assertEqual(vec[6], 30.0)  # bhop_total_sauts
         self.assertEqual(vec[7], 0.1)   # bhop_ratio_parfaits
         self.assertEqual(vec[8], 50.0)  # bhop_variance_sol default
@@ -46,7 +46,7 @@ class TestCheatClassifier(unittest.TestCase):
         classifier = CheatClassifier()
         aim = {
             "aim_vitesse_max": 18.0,
-            "aim_snap_max": 4.5,
+            "aim_p99": 4.5,
             "aim_jerk_moyen": 0.15,
             "aim_jerk_max": 6.5,
             "aim_ratio_micro_ajustements": 5.0,
@@ -75,7 +75,7 @@ class TestCheatClassifier(unittest.TestCase):
 
     def test_suspect_player_one_critical_factor(self):
         classifier = CheatClassifier()
-        aim = {"aim_snap_max": 22.5, "aim_jerk_max": 10.0}
+        aim = {"aim_p99": 22.5, "aim_jerk_max": 10.0}
         bhop = {"bhop_total_sauts": 20, "bhop_ratio_parfaits": 0.1}
         wh = {"wh_ratio_lock_strict": 0.02, "wh_tracking_consecutif_max": 10}
 
@@ -89,7 +89,7 @@ class TestCheatClassifier(unittest.TestCase):
 
     def test_cheater_player_multiple_critical_factors(self):
         classifier = CheatClassifier()
-        aim = {"aim_snap_max": 34.0, "aim_jerk_max": 65.0}
+        aim = {"aim_p99": 34.0, "aim_jerk_max": 65.0}
         bhop = {"bhop_total_sauts": 25, "bhop_ratio_parfaits": 0.88, "bhop_chaine_max": 6}
         wh = {"wh_ratio_lock_strict": 0.22, "wh_tracking_consecutif_max": 90}
 
@@ -103,7 +103,7 @@ class TestCheatClassifier(unittest.TestCase):
         classifier = CheatClassifier()
 
         # Rule 1: Violent Snapbot
-        res_snap = classifier.predict({"aim_snap_max": 25.0}, {}, {})
+        res_snap = classifier.predict({"aim_p99": 25.0}, {}, {})
         self.assertTrue(any("[AIMBOT: Snap 25.0°/tick]" in p for p in res_snap.pills))
 
         # Rule 2: Inhuman Jerk

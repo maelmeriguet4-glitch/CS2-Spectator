@@ -59,7 +59,7 @@ def create_sample_player_telemetry(
 
     aim_metrics = {
         "aim_vitesse_max": snap_max * 1.1,
-        "aim_snap_max": snap_max,
+        "aim_p99": snap_max,
         "aim_jerk_moyen": 4.2,
         "aim_jerk_max": 9.1,
         "aim_ratio_micro_ajustements": 0.45,

@@ -5,12 +5,12 @@ Gère de manière distincte le modèle synthétique (cerveau_vac_custom.pkl)
 et le modèle entraîné sur données réelles (cerveau_vac_cs2cd.pkl).
 """
 
-from dataclasses import dataclass, field
 import hashlib
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Any, List, Optional
 
 import joblib
 import numpy as np
@@ -21,9 +21,15 @@ logger = logging.getLogger(__name__)
 
 FEATURE_SCHEMA_VERSION = "1.0"
 
+# Compatibilité ascendante : ancien nom de feature (même position, même calcul)
+# remplacé par le nom canonique actuel lors du renommage du schéma v1.0.
+ALIASES_FEATURES_HERITEES = {
+    "aim_snap_max": "aim_p99",
+}
+
 NOMS_FEATURES = [
     "aim_vitesse_max",
-    "aim_snap_max",
+    "aim_p99",
     "aim_jerk_moyen",
     "aim_jerk_max",
     "aim_ratio_micro_ajustements",
@@ -40,6 +46,13 @@ NOMS_FEATURES = [
 ]
 
 FEATURE_SCHEMA_HASH = hashlib.sha256(",".join(NOMS_FEATURES).encode("utf-8")).hexdigest()[:16]
+
+
+def normaliser_noms_features(noms) -> list:
+    """Ramène un schéma de features éventuellement hérité vers les noms canoniques."""
+    if not noms:
+        return []
+    return [ALIASES_FEATURES_HERITEES.get(str(n), str(n)) for n in noms]
 
 
 def resource_path(relative_path: str) -> str:
@@ -67,7 +80,7 @@ def extraire_vecteur_features(profil_aim, profil_bhop, profil_wh):
 
     vecteur = [
         float(aim.get("aim_vitesse_max", 0.0)),
-        float(aim.get("aim_snap_max", 0.0)),
+        float(aim.get("aim_p99", 0.0)),
         float(aim.get("aim_jerk_moyen", 0.0)),
         float(aim.get("aim_jerk_max", 0.0)),
         float(aim.get("aim_ratio_micro_ajustements", 0.0)),
@@ -158,32 +171,6 @@ def generer_dataset_calibre(nb_clean=1000, nb_cheats=1000):
     return np.array(X), np.array(y)
 
 
-def entrainer_le_modele(chemin_sortie=FICHIER_MODELE_SYNTHETIQUE):
-    """Entraîne et sauvegarde le package d'IA anti-cheat synthétique de référence."""
-    X, y = generer_dataset_calibre(nb_clean=3000, nb_cheats=3000)
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    rf = RandomForestClassifier(n_estimators=200, max_depth=12, random_state=42)
-    rf.fit(X_scaled, y)
-
-    X_clean_scaled = X_scaled[y == 0]
-    iso = IsolationForest(contamination=0.03, random_state=42)
-    iso.fit(X_clean_scaled)
-
-    paquet_ia = {
-        "scaler": scaler,
-        "modele": rf,
-        "isolation_forest": iso,
-        "noms_features": NOMS_FEATURES,
-        "dataset_name": "Synthetic_Physical_CS2",
-        "model_type": "RandomForestClassifier",
-    }
-
-    joblib.dump(paquet_ia, chemin_sortie)
-    return paquet_ia
-
-
 def valider_bundle_modele(paquet: Any) -> bool:
     """Valide rigoureusement la structure, les dimensions et les valeurs d'un bundle de modèle."""
     if isinstance(paquet, (str, os.PathLike)):
@@ -196,10 +183,15 @@ def valider_bundle_modele(paquet: Any) -> bool:
         raise ValueError("Bundle incomplet : 'modele' et 'scaler' sont requis.")
 
     noms = paquet.get("noms_features")
-    if not noms or list(noms) != NOMS_FEATURES:
+    noms_normalises = normaliser_noms_features(noms)
+    if not noms_normalises or noms_normalises != NOMS_FEATURES:
         raise ValueError(
-            f"Schéma de features incompatible. Attendu {len(NOMS_FEATURES)} features, reçu {len(noms) if noms else 0}."
+            f"Schéma de features incompatible. Attendu {len(NOMS_FEATURES)} features "
+            f"({NOMS_FEATURES}), reçu {len(noms) if noms else 0} ({list(noms) if noms else []})."
         )
+    # Aligner le bundle en mémoire sur le schéma canonique (l'ordre et la signification
+    # des features sont identiques, seul l'ancien libellé changeait).
+    paquet["noms_features"] = list(NOMS_FEATURES)
 
     scaler = paquet["scaler"]
     modele = paquet["modele"]
@@ -224,6 +216,12 @@ def valider_bundle_modele(paquet: Any) -> bool:
                 raise ValueError(f"Seuil suspect invalide dans le bundle : {th_sus}")
         except (ValueError, TypeError):
             raise ValueError(f"Seuil suspect non numérique : {th_sus}")
+
+    # Cohérence : le seuil "suspicion élevée" doit rester strictement au-dessus du seuil suspect
+    if th_high is not None and th_sus is not None and float(th_sus) >= float(th_high):
+        raise ValueError(
+            f"Seuils incohérents : threshold_suspect ({th_sus}) doit être < threshold_high ({th_high})."
+        )
 
     return True
 
@@ -375,7 +373,7 @@ def classifier_joueur(
     pills = []
 
     # Aimbot
-    snap = float(profil_aim.get("aim_snap_max", 0))
+    snap = float(profil_aim.get("aim_p99", 0))
     jerk = float(profil_aim.get("aim_jerk_max", 0))
     if snap > cfg.aimbot_snap_threshold:
         facteurs.append(f"Snap instantané anormal ({snap:.1f}°/tick)")
@@ -396,7 +394,7 @@ def classifier_joueur(
         cheats_detectes.append(f"BHOP: Script {bhop_ratio*100:.0f}%")
         pills.append(f"[BHOP: Script {bhop_ratio*100:.0f}%]")
     if bhop_chain >= 4:
-        facteurs.append(f"Chaîne de BunnyHop inhumaine ({bhop_chain} consécutifs)")
+        facteurs.append(f"Chaîne de BunnyHop suspecte ({bhop_chain} consécutifs)")
         if not any("Chaîne" in c for c in cheats_detectes):
             cheats_detectes.append(f"BHOP: Chaîne {bhop_chain}")
         pills.append(f"[BHOP: Chaîne x{bhop_chain}]")
@@ -443,11 +441,11 @@ def classifier_joueur(
     tb_rt = float(tb.get("triggerbot_rt_median", 999.0))
     tb_std = float(tb.get("triggerbot_rt_std", 999.0))
     if shots >= 3 and tb_rt < cfg.triggerbot_rt_median_threshold:
-        facteurs.append(f"Temps de réaction inhumain triggerbot ({tb_rt:.1f}ms)")
+        facteurs.append(f"Latence alignement-tir anormalement basse ({tb_rt:.1f}ms)")
         cheats_detectes.append(f"TRIGGERBOT: Réaction {tb_rt:.0f}ms")
         pills.append(f"[TRIGGERBOT: Réaction {tb_rt:.0f}ms]")
     if shots >= 3 and tb_std < cfg.triggerbot_rt_std_threshold:
-        facteurs.append(f"Consistance de tir surhumaine (σ {tb_std:.1f}ms)")
+        facteurs.append(f"Régularité de tir statistiquement anormale (σ {tb_std:.1f}ms)")
         cheats_detectes.append(f"TRIGGERBOT: Régularité {tb_std:.0f}ms")
         pills.append(f"[TRIGGERBOT: Régularité {tb_std:.0f}ms]")
     if tb.get("triggerbot_burst_count", 0) >= 1:
@@ -471,7 +469,6 @@ def classifier_joueur(
         seuil_suspect = cfg.ml_suspect_threshold * 100.0
 
     # 5. Synthèse de l'indice de suspicion (combinaison continue basée sur les seuils effectifs)
-    # 5. Synthèse de l'indice de suspicion (combinaison continue basée sur les seuils effectifs)
     has_rage = any("SPINBOT" in c or "Pitch invalide" in c for c in cheats_detectes)
     if has_rage:
         suspicion_score = max(ml_score, 90.0, seuil_cheater)
@@ -482,7 +479,7 @@ def classifier_joueur(
     else:
         est_inactif = (
             float(profil_aim.get("aim_vitesse_max", 0.0) or 0.0) == 0.0
-            and float(profil_aim.get("aim_snap_max", 0.0) or 0.0) == 0.0
+            and float(profil_aim.get("aim_p99", 0.0) or 0.0) == 0.0
             and float(profil_bhop.get("bhop_total_sauts", 0.0) or 0.0) == 0.0
             and float(profil_wh.get("wh_ratio_lock_strict", 0.0) or 0.0) == 0.0
         )
@@ -492,14 +489,18 @@ def classifier_joueur(
             suspicion_score = ml_score
 
     # Détermination du verdict (terminologie prudente & non accusatrice)
+    # Remarque : les scores combinés ne sont pas des probabilités calibrées. Un score
+    # individuel élevé sans AUCUN facteur biomécanique explicite ne suffit pas à
+    # étiqueter un joueur SUSPECT ; en revanche la présence d'un facteur explicite
+    # interdit de conclure "NON DÉTECTÉ" sur le seul score ML.
     if has_rage or suspicion_score >= max(70.0, seuil_cheater) or len(facteurs) >= cfg.ml_critical_factors_cheater:
         verdict = "SUSPICION ÉLEVÉE"
         statut = "high_suspicion"
-    elif suspicion_score >= seuil_suspect or len(facteurs) >= cfg.ml_critical_factors_suspect:
+    elif len(facteurs) >= cfg.ml_critical_factors_suspect or suspicion_score >= seuil_suspect:
         verdict = "SUSPECT"
         statut = "suspect"
     else:
-        verdict = "LÉGITIME"
+        verdict = "NON DÉTECTÉ"
         statut = "clean"
 
     return {
@@ -508,8 +509,7 @@ def classifier_joueur(
         "ml_score": round(ml_score, 2),
         "anomaly_score": round(anomaly_score, 4),
         "suspicion_score": round(suspicion_score, 2),
-        "probabilite_triche": round(suspicion_score, 2),  # alias compatibilité
-        "verdict": verdict,
+                "verdict": verdict,
         "statut": statut,
         "analysis_status": "ok",
         "facteurs_suspects": facteurs,
@@ -579,17 +579,35 @@ class CheatClassifier:
         self.dataset_revision = self._bundle.get("dataset_revision", "Unknown")
         self.threshold_high = float(self._bundle.get("threshold_high", self._bundle.get("threshold", 0.80)))
         self.threshold_suspect = float(self._bundle.get("threshold_suspect", 0.40))
+        # Garde-fou de cohérence : éviter qu'un vieux bundle ne rende l'étiquette
+        # "suspicion élevée" inaccessible (seuil suspect >= seuil haut).
+        if self.threshold_suspect >= self.threshold_high:
+            logger.warning(
+                "[ML] Seuils incohérents dans le bundle (suspect=%.2f >= high=%.2f) : "
+                "restauration des seuils par défaut 0.40 / 0.80.",
+                self.threshold_suspect,
+                self.threshold_high,
+            )
+            self.threshold_suspect = 0.40
+            self.threshold_high = 0.80
         self.is_loaded = True
 
     def get_fingerprint(self) -> str:
         """Retourne l'empreinte unique du modèle pour l'invalidation du cache."""
+        import hashlib
         h = hashlib.sha256()
         h.update(str(self.dataset_name).encode())
         h.update(str(self._bundle.get("training_date", "")).encode())
         h.update(str(self.threshold_high).encode())
         h.update(str(self.threshold_suspect).encode())
         h.update(FEATURE_SCHEMA_HASH.encode())
+        # Check for bundle file hash if possible
+        if self.model_path and os.path.exists(self.model_path):
+            with open(self.model_path, 'rb') as f:
+                h.update(f.read())
         return h.hexdigest()[:16]
+
+
 
     def predict(
         self,
@@ -606,7 +624,7 @@ class CheatClassifier:
         tb = triggerbot_metrics or {}
 
         # Dictionnaires par défaut minimaux pour éviter les None
-        aim_in = aim if aim else {"aim_snap_max": 0, "aim_jerk_max": 0, "aim_jerk_moyen": 0, "aim_vitesse_max": 0, "aim_ratio_micro_ajustements": 0, "aim_variance_vitesse": 0}
+        aim_in = aim if aim else {"aim_p99": 0, "aim_jerk_max": 0, "aim_jerk_moyen": 0, "aim_vitesse_max": 0, "aim_ratio_micro_ajustements": 0, "aim_variance_vitesse": 0}
         bhop_in = bhop if bhop else {"bhop_total_sauts": 0, "bhop_ratio_parfaits": 0, "bhop_variance_sol": 50, "bhop_chaine_max": 0, "bhop_vitesse_moyenne": 0}
         wh_in = wh if wh else {"wh_ratio_lock_cache": 0, "wh_ratio_lock_strict": 0, "wh_tracking_consecutif_max": 0, "wh_distance_moyenne_verrous": 0}
 
@@ -624,18 +642,24 @@ class CheatClassifier:
         facteurs = res_fr.get("facteurs_suspects", [])
         pills = list(res_fr.get("pills", []))
 
-        seuil_high = self.threshold_high * 100.0
-        seuil_sus = self.threshold_suspect * 100.0
+        # === VERDICT UNIQUE CANONIQUE ===
+        # Le verdict est dérivé directement de classifier_joueur (statut FR)
+        # pour garantir qu'il n'y a qu'une seule logique de décision.
+        statut_fr = res_fr.get("statut", "clean")
 
-        if score >= max(70.0, seuil_high) or len(facteurs) >= 2 or any("SPINBOT" in p for p in pills):
-            verdict_en = "CHEATER"
-            display = f"🔴 CHEATER ({score:.1f}%)"
-        elif score >= seuil_sus or len(facteurs) >= 1:
-            verdict_en = "SUSPECT"
-            display = f"🟡 SUSPECT ({score:.1f}%)"
-        else:
-            verdict_en = "CLEAN"
-            display = f"🟢 CLEAN ({score:.1f}%)"
+        STATUT_TO_EN = {
+            "high_suspicion": "CHEATER",
+            "suspect": "SUSPECT",
+            "clean": "CLEAN",
+        }
+        verdict_en = STATUT_TO_EN.get(statut_fr, "CLEAN")
+
+        VERDICT_DISPLAY = {
+            "CHEATER": f"🔴 SUSPICION ÉLEVÉE ({score:.1f}%)",
+            "SUSPECT": f"🟡 SUSPECT ({score:.1f}%)",
+            "CLEAN": f"🟢 NON DÉTECTÉ ({score:.1f}%)",
+        }
+        display = VERDICT_DISPLAY.get(verdict_en, f"NON DÉTECTÉ ({score:.1f}%)")
 
         return ClassificationResult(
             verdict=verdict_en,

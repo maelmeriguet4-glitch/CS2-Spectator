@@ -526,7 +526,11 @@ class TestTier5CLIStress(unittest.TestCase):
             errors="replace",
         )
         self.assertEqual(res_ver.returncode, 0)
-        self.assertTrue("CS2 Anti-Cheat Replay Auditor v2.4.0" in res_ver.stdout or "CS2 Anti-Cheat Replay Auditor v2.4.1" in res_ver.stdout)
+        self.assertTrue(
+            "CS2 Anti-Cheat Replay Auditor v2.4.0" in res_ver.stdout or 
+            "CS2 Anti-Cheat Replay Auditor v2.4.1" in res_ver.stdout or
+            "CS2 Anti-Cheat Replay Auditor v2.4.2" in res_ver.stdout
+        )
 
         # --help
         res_help = subprocess.run(

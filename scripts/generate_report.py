@@ -1,9 +1,11 @@
 import json
 import sys
+
+from reportlab.lib.colors import HexColor, red
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Preformatted
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.colors import black, red, HexColor
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import PageBreak, Paragraph, Preformatted, SimpleDocTemplate, Spacer
+
 
 def create_pdf(json_path, output_path):
     with open(json_path, 'r', encoding='utf-8') as f:

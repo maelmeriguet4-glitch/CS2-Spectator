@@ -5,7 +5,6 @@ Wrapper robuste pour demoparser2 avec extraction des SteamID64 et des données d
 
 import os
 
-import numpy as np
 import pandas as pd
 from demoparser2 import DemoParser
 

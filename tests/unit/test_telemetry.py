@@ -125,7 +125,7 @@ class TestAimbotAnalyzer(unittest.TestCase):
 
         result = analyze_aimbot(mock_demo, "76561198000000001")
         self.assertIsInstance(result, AimAnalysisResult)
-        self.assertLess(result.metrics["aim_snap_max"], 5.0)
+        self.assertLess(result.metrics["aim_p99"], 5.0)
         self.assertLess(result.metrics["aim_jerk_max"], 5.0)
         self.assertEqual(len(result.flagged_snaps), 0)
 
@@ -153,7 +153,7 @@ class TestAimbotAnalyzer(unittest.TestCase):
         mock_demo = MockDemoData(df_ticks, weapon_fire=df_fire)
 
         result = analyze_aimbot(mock_demo, "76561198000000002")
-        self.assertGreater(result.metrics["aim_snap_max"], 18.0)
+        self.assertGreater(result.metrics["aim_p99"], 18.0)
         self.assertGreater(result.metrics["aim_jerk_max"], 30.0)
         self.assertGreater(len(result.flagged_snaps), 0)
         self.assertIn(result.flagged_snaps[0]["tick"], [1020, 1021])
@@ -337,7 +337,7 @@ class TestRealDemoAndEdgeCases(unittest.TestCase):
         self.assertTrue(demo.ticks.empty)
 
         aim = analyze_aimbot(demo, "123")
-        self.assertEqual(aim.metrics["aim_snap_max"], 0.0)
+        self.assertEqual(aim.metrics["aim_p99"], 0.0)
 
         bhop = analyze_bhop(demo, "123")
         self.assertEqual(bhop.metrics["bhop_ratio_parfaits"], 0.0)

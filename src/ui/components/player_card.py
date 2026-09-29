@@ -135,7 +135,7 @@ class PlayerCard(ctk.CTkFrame):
         if verdict_norm == "CLEAN":
             progress_val = 1.0
             prog_color = THEME["clean_green"]
-            meter_text = "✓ 100% LÉGITIME"
+            meter_text = "✓ NON DÉTECTÉ"
         elif verdict_norm == "SUSPECT":
             progress_val = max(0.40, min(0.69, player.suspicion_score / 100.0))
             prog_color = THEME["suspect_amber"]
@@ -143,7 +143,7 @@ class PlayerCard(ctk.CTkFrame):
         else:
             progress_val = max(0.80, min(1.0, player.suspicion_score / 100.0))
             prog_color = THEME["cheater_red"]
-            meter_text = "⛔ TRICHE AVÉRÉE"
+            meter_text = "⛔ SUSPICION ÉLEVÉE"
 
         self.progress_bar = ctk.CTkProgressBar(
             self.meter_frame,
@@ -440,7 +440,7 @@ class PlayerCard(ctk.CTkFrame):
 
         # Open the interactive modal
         try:
-            modal = WatchCS2Modal(
+            WatchCS2Modal(
                 self.winfo_toplevel(),
                 player=self.player,
                 demo_path=self.demo_path,
@@ -483,7 +483,7 @@ class PlayerCard(ctk.CTkFrame):
         if verdict_norm == "CLEAN":
             progress_val = 1.0
             prog_color = THEME["clean_green"]
-            meter_text = "✓ 100% LÉGITIME"
+            meter_text = "✓ NON DÉTECTÉ"
         elif verdict_norm == "SUSPECT":
             progress_val = max(0.40, min(0.69, player.suspicion_score / 100.0))
             prog_color = THEME["suspect_amber"]
@@ -491,7 +491,7 @@ class PlayerCard(ctk.CTkFrame):
         else:
             progress_val = max(0.80, min(1.0, player.suspicion_score / 100.0))
             prog_color = THEME["cheater_red"]
-            meter_text = "⛔ TRICHE AVÉRÉE"
+            meter_text = "⛔ SUSPICION ÉLEVÉE"
 
         self.progress_bar.configure(progress_color=prog_color)
         self.progress_bar.set(progress_val)

@@ -1,5 +1,7 @@
+from typing import Any, List
+
 import customtkinter as ctk
-from typing import List, Any
+
 
 class PlayerResultRow(ctk.CTkFrame):
     def __init__(self, master, player_telemetry: Any, **kwargs):
@@ -89,7 +91,7 @@ class PlayerResultRow(ctk.CTkFrame):
         try:
             from src.core.export import export_player_report
             # Récupérer le demo_path si possible, sinon "Batch"
-            filepath = export_player_report(self.player, demo_name="CS2_Analysis")
+            export_player_report(self.player, demo_name="CS2_Analysis")
             
             # Change color briefly to indicate success
             self.export_btn.configure(text="✅ Exporté", fg_color="#28a745")

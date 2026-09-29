@@ -1,16 +1,21 @@
-import os
 import re
 from datetime import datetime
+
 
 def _sanitize_filename(name: str) -> str:
     """Remplace les caractères invalides pour un nom de fichier Windows/Linux."""
     return re.sub(r'[\\/*?:"<>|]', "", name).strip() or "Joueur_Inconnu"
 
-def export_player_report(player, demo_name: str = "Unknown_Demo", export_dir: str = "reports") -> str:
+def export_player_report(player, demo_name: str = "Unknown_Demo", export_dir: str = None) -> str:
     """
     Génère un rapport texte détaillé pour un joueur suspect.
     Retourne le chemin complet du fichier généré.
     """
+    if export_dir is None:
+        import os
+        base_dir = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
+        export_dir = os.path.join(base_dir, 'CS2AntiCheat', 'reports')
+
     if not os.path.exists(export_dir):
         os.makedirs(export_dir)
 

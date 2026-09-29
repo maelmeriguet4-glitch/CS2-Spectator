@@ -341,7 +341,7 @@ class TestTier1FeatureR2TelemetryAndML(unittest.TestCase):
         # Human baseline vector (normal gameplay values)
         human_features = np.array([[
             6.2,    # aim_vitesse_max
-            5.1,    # aim_snap_max
+            5.1,    # aim_p99
             3.0,    # aim_jerk_moyen
             7.5,    # aim_jerk_max
             0.42,   # aim_ratio_micro_ajustements
@@ -364,7 +364,7 @@ class TestTier1FeatureR2TelemetryAndML(unittest.TestCase):
         # Cheater vector (blatant aimbot snaps, bhop script, and wallhack locks)
         cheater_features = np.array([[
             48.5,   # aim_vitesse_max (inhuman snap)
-            42.0,   # aim_snap_max
+            42.0,   # aim_p99
             22.0,   # aim_jerk_moyen
             55.0,   # aim_jerk_max
             0.10,   # aim_ratio_micro_ajustements (linear lock, no corrections)
@@ -455,7 +455,7 @@ class TestTier1FeatureR3TacticalGUI(unittest.TestCase):
         self.assertEqual(player.name, "ENA")
         self.assertEqual(player.team_number, 3)  # CT
         self.assertEqual(player.verdict, "CLEAN")
-        self.assertIn("aim_snap_max", player.aim_metrics)
+        self.assertIn("aim_p99", player.aim_metrics)
         self.assertIn("bhop_ratio_parfaits", player.bhop_metrics)
         self.assertIn("wh_ratio_lock_strict", player.wh_metrics)
 
@@ -504,7 +504,7 @@ class TestTier1FeatureR4ReportingWizard(unittest.TestCase):
     # Reference QCM Options according to specification
     QCM_OPTIONS = [
         "Visée anormale à travers les fumigènes / murs (Pre-aiming & Wallhack)",
-        "Snaps instantanés et verrouillage de tête inhumain (Aimbot / Silent Aim)",
+        "Snaps instantanés et verrouillage de tête latence alignement (Aimbot / Silent Aim)",
         "Compensations de recul parfaites sans dispersion (No-Recoil / Macro)",
         "Sauts parfaits 1-tick en chaîne et prises de vitesse (Bunnyhop Script)",
         "Prises d'informations impossibles et pré-tirs systématiques (Radar / ESP)",
@@ -525,7 +525,7 @@ class TestTier1FeatureR4ReportingWizard(unittest.TestCase):
             f"• Facteurs anormaux détectés :\n{bullets_flags}\n\n"
             f"OBSERVATIONS EN MATCH (QCM) :\n{bullets_qcm}\n\n"
             f"PREUVES TÉLÉMÉTRIQUES OBJECTIVES :\n"
-            f"- Vitesse angulaire max (Snap) : {player.aim_metrics.get('aim_snap_max', 0.0):.1f}°/tick\n"
+            f"- Vitesse angulaire max (Snap) : {player.aim_metrics.get('aim_p99', 0.0):.1f}°/tick\n"
             f"- Ratio BunnyHop parfait 1-tick : {player.bhop_metrics.get('bhop_ratio_parfaits', 0.0)*100:.1f}%\n"
             f"- Lock de visée à travers les murs : {player.wh_metrics.get('wh_ratio_lock_strict', 0.0)*100:.1f}%\n\n"
             f"Commentaires de l'auditeur :\n{notes if notes else 'Aucun commentaire additionnel.'}\n\n"
@@ -543,7 +543,7 @@ class TestTier1FeatureR4ReportingWizard(unittest.TestCase):
             f"1. VIOLATION CATEGORY:\n{bullets_qcm}\n\n"
             f"2. QUANTITATIVE BIOMECHANICAL AUDIT:\n"
             f"- Machine Learning Confidence: {player.suspicion_score:.1f}% ({player.verdict})\n"
-            f"- Max Angular Snap Velocity: {player.aim_metrics.get('aim_snap_max', 0.0):.1f} deg/tick\n"
+            f"- Max Angular Snap Velocity: {player.aim_metrics.get('aim_p99', 0.0):.1f} deg/tick\n"
             f"- Perfect 1-Tick Ground Jump Transition: {player.bhop_metrics.get('bhop_ratio_parfaits', 0.0)*100:.1f}%\n"
             f"- Occluded 3D Eye-Ray Alignment: {player.wh_metrics.get('wh_ratio_lock_strict', 0.0)*100:.1f}%\n\n"
             f"3. AUDITOR CONTEXT:\n{notes if notes else 'N/A'}\n\n"
@@ -566,7 +566,7 @@ class TestTier1FeatureR4ReportingWizard(unittest.TestCase):
             bhop_ratio=0.85,
             wh_lock_strict=0.22,
         )
-        self.assertAlmostEqual(player.aim_metrics["aim_snap_max"], 32.4)
+        self.assertAlmostEqual(player.aim_metrics["aim_p99"], 32.4)
         self.assertAlmostEqual(player.bhop_metrics["bhop_ratio_parfaits"], 0.85)
         self.assertAlmostEqual(player.wh_metrics["wh_ratio_lock_strict"], 0.22)
 

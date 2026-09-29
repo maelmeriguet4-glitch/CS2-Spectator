@@ -47,7 +47,7 @@ class TestCacheIntegration(unittest.TestCase):
             suspicion_score=85.5,
             verdict="CHEATER",
             violation_flags=["AIMBOT: Snap 45.0°/tick"],
-            aim_metrics={"aim_snap_max": 45.0},
+            aim_metrics={"aim_p99": 45.0},
         )
         match_res = MatchAnalysisResult(
             demo_path=dummy_file,

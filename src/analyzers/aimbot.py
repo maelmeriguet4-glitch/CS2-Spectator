@@ -4,10 +4,12 @@ Analyse biomécanique avancée de la visée : snaps, jerk angulaire, micro-ajust
 Refactoré depuis aimbot_advanced.py.
 """
 
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
-from src.core.config import get_config
 from src.core.parser import charger_demo
 
 
@@ -160,23 +162,20 @@ def analyser_aimbot(demo_ou_chemin, joueur_cible):
 
     profil_visee = {
         "aim_vitesse_max": round(vitesse_max_tir, 4),
-        "aim_snap_max": round(snap_max, 4),
+        "aim_p99": round(snap_max, 4),
         "aim_jerk_moyen": round(jerk_moyen_tir, 4),
         "aim_jerk_max": round(jerk_max_tir, 4),
         "aim_ratio_micro_ajustements": round(micro_ajust_tir, 4),
         "aim_variance_vitesse": round(variance_vitesse_tir, 4),
         "aim_fov_lock_ratio": round(fov_lock_ratio, 4),
-        "aim_smoothing_r2": round(smoothing_r2, 4),
-        "aim_target_acq_speed": round(avg_acq_speed, 4),
+        "aim_fit_polynomial_indicatif": round(smoothing_r2, 4),
+        "aim_vitesse_acquisition": round(avg_acq_speed, 4),
     }
 
     return profil_visee
 
 
 # === Compatibilité API Anglaise (engine EN) ===
-from dataclasses import dataclass, field
-from typing import Any, Dict, List
-
 
 @dataclass
 class AimbotResult:
@@ -257,7 +256,7 @@ def analyze_aimbot(demo_data_or_path, identifier: str) -> AimbotResult:
         profil = analyser_aimbot(demo_data, name)
         if profil is None:
             profil = {
-                "aim_vitesse_max": 0.0, "aim_snap_max": 0.0, "aim_jerk_moyen": 0.0,
+                "aim_vitesse_max": 0.0, "aim_p99": 0.0, "aim_jerk_moyen": 0.0,
                 "aim_jerk_max": 0.0, "aim_ratio_micro_ajustements": 0.0, "aim_variance_vitesse": 0.0,
             }
         return AimbotResult(metrics=profil, flagged_snaps=[])
@@ -266,7 +265,7 @@ def analyze_aimbot(demo_data_or_path, identifier: str) -> AimbotResult:
     profil = analyser_aimbot(demo_data, name)
     if profil is None:
         profil = {
-            "aim_vitesse_max": 0.0, "aim_snap_max": 0.0, "aim_jerk_moyen": 0.0,
+            "aim_vitesse_max": 0.0, "aim_p99": 0.0, "aim_jerk_moyen": 0.0,
             "aim_jerk_max": 0.0, "aim_ratio_micro_ajustements": 0.0, "aim_variance_vitesse": 0.0,
         }
     snaps = []

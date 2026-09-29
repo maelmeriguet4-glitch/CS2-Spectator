@@ -103,7 +103,7 @@ class TestUITheme(unittest.TestCase):
     def test_get_status_colors(self):
         clean = get_status_colors("CLEAN", 12.0)
         self.assertEqual(clean["status_short"], "CLEAN")
-        self.assertIn("LÉGITIME", clean["status_text"])
+        self.assertIn("NON DÉTECTÉ", clean["status_text"])
         self.assertEqual(clean["progress_color"], THEME["clean_green"])
 
         suspect = get_status_colors("SUSPECT", 55.0)
@@ -246,7 +246,7 @@ class TestPlayerCard(unittest.TestCase):
             steamid="76561198009233007",
             name="Sushyko",
             team_number=3,
-            aim_metrics={"aim_snap_max": 6.2},
+            aim_metrics={"aim_p99": 6.2},
             bhop_metrics={"bhop_ratio_parfaits": 12.0},
             wh_metrics={"wh_ratio_lock_strict": 1.5},
             suspicion_score=4.2,
@@ -260,9 +260,9 @@ class TestPlayerCard(unittest.TestCase):
         self.assertEqual(card.lbl_name.cget("text"), "Sushyko")
         self.assertEqual(card.team_badge.cget("text"), "CT")
         self.assertIn("76561198009233007", card.lbl_steamid.cget("text"))
-        self.assertIn("LÉGITIME", card.status_badge.cget("text"))
+        self.assertIn("NON DÉTECTÉ", card.status_badge.cget("text"))
         self.assertEqual(card.progress_bar.get(), 1.0)
-        self.assertIn("100% LÉGITIME", card.lbl_suspicion.cget("text"))
+        self.assertIn("NON DÉTECTÉ", card.lbl_suspicion.cget("text"))
         self.assertIn("Motif", card.lbl_why.cget("text"))
 
         # Check clean pill
@@ -302,7 +302,7 @@ class TestPlayerCard(unittest.TestCase):
             steamid="76561199349501012",
             name="Jeffrey Epstein",
             team_number=2,
-            aim_metrics={"aim_snap_max": 38.4},
+            aim_metrics={"aim_p99": 38.4},
             bhop_metrics={"bhop_ratio_parfaits": 87.0},
             wh_metrics={"wh_ratio_lock_strict": 28.5},
             suspicion_score=94.8,
@@ -544,7 +544,7 @@ class TestCS2AntiCheatApp(unittest.TestCase):
             steamid="76561198009233007",
             name="DialogTest",
             team_number=3,
-            aim_metrics={"aim_snap_max": 30.0},
+            aim_metrics={"aim_p99": 30.0},
             bhop_metrics={},
             wh_metrics={},
             suspicion_score=80.0,
@@ -566,7 +566,7 @@ class TestCS2AntiCheatApp(unittest.TestCase):
             steamid="76561198009233007",
             name="FlickPlayer",
             team_number=3,
-            aim_metrics={"aim_snap_max": 25.0},
+            aim_metrics={"aim_p99": 25.0},
             bhop_metrics={},
             wh_metrics={},
             suspicion_score=75.0,
@@ -588,7 +588,7 @@ class TestCS2AntiCheatApp(unittest.TestCase):
             steamid="76561198009233007",
             name="DiagPlayer",
             team_number=3,
-            aim_metrics={"aim_snap_max": 22.0, "aim_jerk_max": 32.0},
+            aim_metrics={"aim_p99": 22.0, "aim_jerk_max": 32.0},
             bhop_metrics={"bhop_ratio_parfaits": 85.0, "bhop_chaine_max": 5},
             wh_metrics={"wh_ratio_lock_cache": 18.0},
             suspicion_score=88.0,

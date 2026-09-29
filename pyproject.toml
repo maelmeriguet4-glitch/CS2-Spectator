@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cs2-anticheat"
-version = "2.4.1"
+version = "2.4.2"
 description = "Analyse biomécanique et machine learning des replays Counter-Strike 2."
 authors = [
     {name = "CS2 AC Team"}
@@ -32,3 +32,24 @@ cs2-anticheat = "main:main"
 
 [tool.setuptools.packages.find]
 include = ["src*"]
+
+[tool.ruff]
+# Configuration de référence du projet : sans elle, Ruff applique le jeu de
+# règles de la machine (ici toutes les règles), ce qui rend le lint
+# non reproductible. On ne cible que les anomalies réelles.
+line-length = 120
+target-version = "py39"
+extend-exclude = ["build", "dist", ".ruff_cache"]
+
+[tool.ruff.lint]
+# pycodestyle (erreurs), pyflakes, isort.
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Ces entrées ajoutent le dépôt à sys.path avant leurs imports.
+"main.py" = ["E402"]
+"build_exe.py" = ["E402"]
+"scripts/*" = ["E402"]
+"tests/*" = ["E402"]
+"src/ui/app.py" = ["E402"]

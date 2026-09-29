@@ -9,6 +9,7 @@ import glob
 import json
 import os
 import sys
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -17,11 +18,20 @@ DEFAULT_OUTPUT_CSV = os.path.join("data", "anti_cheat_dataset.csv")
 EXAMPLE_OUTPUT_CSV = os.path.join("data", "anti_cheat_dataset.example.csv")
 
 
-def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_CSV, sample_size=None, random_state=42):
+def index_dataset(
+    dataset_root=DEFAULT_DATASET_ROOT,
+    output_csv=DEFAULT_OUTPUT_CSV,
+    sample_size=None,
+    random_state=42,
+    example_output_csv=EXAMPLE_OUTPUT_CSV,
+):
     """
     Scanne le dossier du dataset CS2CD et produit un manifest CSV structuré.
     Supporte les formats .parquet et .csv.gz.
     Garantit l'étanchéité stricte des splits par match.
+
+    `example_output_csv` peut être mis à None pour ne pas écrire l'exemple public
+    (utile pour les appels automatisés qui ne doivent pas toucher au dépôt).
     """
     print(f"[INDEX] Racine du dataset: {dataset_root}")
     if not os.path.exists(dataset_root):
@@ -202,7 +212,8 @@ def index_dataset(dataset_root=DEFAULT_DATASET_ROOT, output_csv=DEFAULT_OUTPUT_C
     print(f"[INDEX] Manifeste enregistré: {output_csv} ({len(final_df)} matches)")
 
     # Créer un exemple anonymisé/relatif pour Git (sans exposer les chemins réels)
-    create_example_manifest(final_df, EXAMPLE_OUTPUT_CSV)
+    if example_output_csv:
+        create_example_manifest(final_df, example_output_csv)
 
     # Affichage des statistiques
     print("=" * 60)

@@ -5,7 +5,6 @@ Handles API authentication, fetching match history, and downloading demos.
 import gzip
 import json
 import os
-import shutil
 import urllib.error
 import urllib.parse
 import urllib.request
